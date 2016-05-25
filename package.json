@@ -18,10 +18,10 @@
   },
   "homepage": "https://github.com/stuhlmueller/connoisseur#readme",
   "dependencies": {
-    "webppl": "github:probmods/webppl#daipp",
+    "webppl": "probmods/webppl#daipp",
     "webppl-dp": "^0.1.1",
-    "webppl-editor": "github:probmods/webppl-editor",
+    "webppl-editor": "probmods/webppl-editor",
     "webppl-timeit": "^0.3.0",
-    "webppl-viz": "github:probmods/webppl-viz"
+    "webppl-viz": "probmods/webppl-viz"
   }
 }
