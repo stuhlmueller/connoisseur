@@ -5,10 +5,10 @@ set -x
 npm install --save probmods/webppl-viz
 cd node_modules/vega
 npm install
-npm install grunt
 cd ../vega-lite
 npm install
 cd ../webppl-viz
+npm install grunt
 grunt bundle
 pwd
 ls
