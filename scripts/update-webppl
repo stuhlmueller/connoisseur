@@ -9,4 +9,4 @@ grunt bundle:../webppl-timeit:../webppl-dp
 cp bundle/webppl.min.js ../../assets/js/webppl.min.js
 cd ../..
 
-echo "Success.">
+echo "Success."
