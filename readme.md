@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/stuhlmueller/connoisseur.svg?branch=gh-pages)](https://travis-ci.org/stuhlmueller/connoisseur)
+
 Development setup (on Ubuntu):
 
 ~~~~
