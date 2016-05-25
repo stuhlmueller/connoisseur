@@ -2,8 +2,6 @@
 set -e
 set -x
 
-sudo apt-get update
-sudo apt-get install git
 sudo apt-get install build-essential libssl-dev pkg-config libcairo2-dev libjpeg-dev libgif-dev
 curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.31.1/install.sh | bash
 source ~/.bashrc
