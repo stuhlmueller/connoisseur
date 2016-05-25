@@ -8,8 +8,6 @@ source ~/.nvm/nvm.sh
 export -f nvm
 nvm install 6.2
 nvm use 6.2
-git clone https://github.com/stuhlmueller/connoisseur.git
-cd connoisseur
 npm install
 npm install -g grunt grunt-cli browserify uglifyjs
 
