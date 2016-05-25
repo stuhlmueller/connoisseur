@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+set -x
+
+npm install --save probmods/webppl#daipp webppl-timeit@latest webppl-dp@latest
+cd node_modules/webppl
+npm install
+grunt bundle:../webppl-timeit:../webppl-dp
+cp bundle/webppl.min.js ../../assets/js/webppl.min.js
+cd ../..
+
+echo "Success."

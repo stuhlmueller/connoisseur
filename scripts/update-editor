@@ -1,0 +1,13 @@
+#!/bin/bash
+set -e
+set -x
+
+npm install --save probmods/webppl-editor
+cd node_modules/webppl-editor
+npm install
+grunt bundle
+cp bundle/webppl-editor.min.js ../../assets/js/webppl-editor.min.js
+cp bundle/webppl-editor.css ../../assets/css/webppl-editor.css
+cd ../..
+
+echo "Success."

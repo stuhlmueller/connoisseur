@@ -1,0 +1,18 @@
+#!/bin/bash
+set -e
+set -x
+
+npm install --save probmods/webppl-viz
+cd node_modules/vega
+npm install
+npm install grunt
+cd ../vega-lite
+npm install
+cd ../webppl-viz
+grunt bundle
+pwd
+ls
+# cp bundle/webppl-viz.js ../../assets/js/webppl-viz.js
+# cp demo/webppl-viz.css ../../assets/css/webppl-viz.css
+# cd ../..
+# echo "Success."

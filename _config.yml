@@ -1,0 +1,10 @@
+# Site settings
+title: "Connoisseur"
+baseurl: "/connoisseur"
+url: "https://stuhlmueller.org"
+
+# Build settings
+markdown: kramdown
+
+exclude:
+- node_modules

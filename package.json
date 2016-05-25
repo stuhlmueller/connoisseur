@@ -1,0 +1,27 @@
+{
+  "name": "connoisseur",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stuhlmueller/connoisseur.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/stuhlmueller/connoisseur/issues"
+  },
+  "homepage": "https://github.com/stuhlmueller/connoisseur#readme",
+  "dependencies": {
+    "webppl": "github:probmods/webppl#daipp",
+    "webppl-dp": "^0.1.1",
+    "webppl-editor": "github:probmods/webppl-editor",
+    "webppl-timeit": "^0.3.0",
+    "webppl-viz": "github:probmods/webppl-viz"
+  }
+}
