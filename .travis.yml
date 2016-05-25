@@ -1,0 +1,19 @@
+language: node_js
+
+node_js:
+  - "6"  
+
+env:
+  - TASK=default
+
+install:
+  - scripts/setup-ubuntu
+  - source ~/.bashrc
+
+script:
+  - scripts/update-webppl
+  - scripts/update-editor
+  - scripts/update-viz
+
+sudo: required
+dist: trusty
