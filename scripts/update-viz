@@ -8,11 +8,10 @@ npm install
 cd ../vega-lite
 npm install
 cd ../webppl-viz
-npm install grunt
+npm install
 grunt bundle
-pwd
-ls
-# cp bundle/webppl-viz.js ../../assets/js/webppl-viz.js
-# cp demo/webppl-viz.css ../../assets/css/webppl-viz.css
-# cd ../..
-# echo "Success."
+cp bundle/webppl-viz.min.js ../../assets/js/webppl-viz.min.js
+cp bundle/webppl-viz.css ../../assets/css/webppl-viz.css
+cd ../..
+
+echo "Success."
