@@ -4,5 +4,9 @@ title: Linear Regression
 ---
 
 ~~~~
-var x = 1;
+var result = Infer({method: 'MCMC', samples: 100}, function(){
+  return uniform(0, 1);
+});
+
+viz.auto(result);
 ~~~~
