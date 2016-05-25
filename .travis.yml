@@ -13,6 +13,7 @@ env:
 install:
   - scripts/setup-ubuntu
   - source ~/.bashrc
+  - nvm use 6.2
 
 script:
   - scripts/update-webppl
