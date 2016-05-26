@@ -1,0 +1,4 @@
+- Linear Regression
+- Logistic Regression
+- Bayesian Neural Nets
+- Active Learning
