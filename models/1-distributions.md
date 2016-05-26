@@ -15,7 +15,7 @@ Beta:
 
 ~~~~
 var showDist = function(dist) {
-  var hist = Infer({method: 'Rejection', samples: 1000}, function(){
+  var hist = Infer({method: 'rejection', samples: 1000}, function(){
     return sample(dist);
   });
   return viz.auto(hist);
@@ -38,7 +38,7 @@ var betaBinomial = function(numHeads, numTails) {
 };
 
 var showBetaBinomial = function(numHeads, numTails) {
-  viz.auto(Infer({method: 'Rejection', samples: 10000}, function(){
+  viz.auto(Infer({method: 'rejection', samples: 10000}, function(){
     return betaBinomial(numHeads, numTails);
   }));
 }

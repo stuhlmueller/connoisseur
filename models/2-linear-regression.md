@@ -1,6 +1,6 @@
 ---
 layout: model
-title: Inference Algorithms
+title: Bayesian Linear Regression
 ---
 
 ~~~~
