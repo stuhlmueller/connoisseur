@@ -94,31 +94,31 @@ var model = function() {
     sigma: param(Vector([2, 2])) 
   });
   var m = sample(mPrior, {guide: mGuide});
-  
+
   var bPrior = Gaussian({mu: 0, sigma: 2});
   var bGuide = Gaussian({mu: param(0), sigma: param(2)});
   var b = sample(bPrior, {guide: bGuide});
 
-//   var sigmaPrior = Gamma({shape: 1, scale: 1});
-//   var sigmaGuide = Gamma({shape: param(1), scale: param(1)});
-//   var sigma = sample(sigmaPrior, {guide: sigmaGuide});
+  // var sigmaPrior = Gamma({shape: 1, scale: 1});
+  // var sigmaGuide = Gamma({shape: param(1), scale: param(1)});
+  // var sigma = sample(sigmaPrior, {guide: sigmaGuide});
   var sigma = 0.5;
 
   var f = function(x) {
     return T.sumreduce(T.mul(m, x)) + b;
   };
-  
-  map(
+
+  var score = sum(map(
     function(datum) {
       var params = {
         mu: f(Vector([datum.x, datum.y])), 
         sigma: sigma
       };
-      var score = Gaussian(params).score(datum.z);
-      factor(score);
+      return Gaussian(params).score(datum.z);
     },
-    data);
-  
+    data));
+  factor(score);
+
   return m;
 };
 
@@ -133,3 +133,5 @@ var E_m1 = expectation(marginal, function(x) { return x.data[1]; });
 // Expect to see [2, -3]
 [E_m0, E_m1]
 ~~~~
+
+This doesn't seem to work yet.
