@@ -18,15 +18,17 @@
 
   <body>
 
+    <header>
+      <a href="{{ site.baseurl }}/">home</a>
+      <a href="https://github.com/stuhlmueller/play" id="github-edit-link">edit</a>
+      <a href="" id="add-code-box">+</a>
+    </header>
+        
     <div class="page-content-wrapper">
       <div class="page-content">
         {{ content }}
       </div>
     </div>
-    
-    <footer class="site-footer">
-      <a href="{{ site.baseurl }}/">Table of Contents</a> | <a href="https://github.com/stuhlmueller/connoisseur" id="github-edit-link">Edit on Github</a>
-    </footer>
     
     <script type="text/javascript">
       $("#github-edit-link").attr("href", github_page_url("{{ page.url }}"))

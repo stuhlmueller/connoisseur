@@ -1,6 +1,6 @@
 ---
 layout: model
-title: Linear Regression
+title: Inference Algorithms
 ---
 
 ~~~~

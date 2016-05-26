@@ -32,8 +32,17 @@ a.site-title:hover {
     text-decoration: underline
 }
 
-a.model-link, a.model-link:visited {
+a.model-link, a.model-link:visited, header a, header a:visited {
     color: rgb(0, 0, 238);
+                                              }
+
+header a {
+    margin: 2px;
+    text-decoration: none;
+}
+
+header a:hover {
+    text-decoration: underline;
 }
 
 .page-content-wrapper {
@@ -44,6 +53,7 @@ a.model-link, a.model-link:visited {
 .page-content {
     line-height: 23px;
     padding: 40px;
+    padding-top: 0;    
     background-color: #fff;
     color: #000;
     min-height: 500px;
@@ -70,6 +80,10 @@ a.model-link, a.model-link:visited {
 .page-content .wpedit .result pre.error {
     color: red;
     background-color: #fff;
+}
+
+.page-content .wpedit {
+    margin-bottom: 15px;
 }
 
 .page-content > p > img {
@@ -111,13 +125,7 @@ header, footer {
     padding: 30px;
 }
 
-footer {
+header {
     font-size: 80%;
     text-align: left;
-    position: absolute;
-    bottom: 0;
-}
-
-footer a {
-    color: #bbb
 }
