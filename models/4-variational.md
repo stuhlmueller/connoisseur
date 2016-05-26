@@ -7,6 +7,20 @@ We can try to approach inference in Bayesian Linear Regression using mean-field 
 
 ~~~~
 ///fold:
+var f = function(x, y) {
+  return 2*x - 3*y;
+};
+
+var data = repeat(20, function(){
+  var x = uniform(-5, 5);
+  var y = uniform(-5, 5);
+  return {
+    x: x,
+    y: y,
+    z: f(x, y)
+  };
+});
+
 var showMultivariateDist = function(dist) {
   var f = function() {
     var s = sample(dist);
@@ -19,8 +33,6 @@ var showMultivariateDist = function(dist) {
   viz.auto(out);
 };
 ///
-
-var data = wpEditor.get('data');
 
 var model = function() {
   var mPrior = DiagCovGaussian({
