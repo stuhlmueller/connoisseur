@@ -32,8 +32,8 @@ a.site-title:hover {
     text-decoration: underline
 }
 
-a.chapter-link {
-    color: #095AD3;
+a.model-link, a.model-link:visited {
+    color: rgb(0, 0, 238);
 }
 
 .page-content-wrapper {
