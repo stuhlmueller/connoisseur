@@ -1,11 +1,11 @@
-[![Build Status](https://travis-ci.org/stuhlmueller/connoisseur.svg?branch=gh-pages)](https://travis-ci.org/stuhlmueller/connoisseur)
+[![Build Status](https://travis-ci.org/stuhlmueller/play.svg?branch=gh-pages)](https://travis-ci.org/stuhlmueller/play)
 
 Development setup (on Ubuntu):
 
 ~~~~
 sudo apt-get update
 sudo apt-get install git
-git clone https://github.com/stuhlmueller/connoisseur.git
+git clone https://github.com/stuhlmueller/play.git
 cd connoisseur
 scripts/setup-ubuntu
 source ~/.bashrc
