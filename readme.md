@@ -6,7 +6,7 @@ Development setup (on Ubuntu):
 sudo apt-get update
 sudo apt-get install git
 git clone https://github.com/stuhlmueller/play.git
-cd connoisseur
+cd play
 scripts/setup-ubuntu
 source ~/.bashrc
 ~~~~
