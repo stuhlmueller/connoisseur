@@ -35,7 +35,7 @@ $(function(){
 $(function(){
   $('#add-code-box').click(function(e){
     e.preventDefault();
-    var newElement = $('<pre>new</pre>').appendTo('div.page-content')[0];
+    var newElement = $('<pre></pre>').appendTo('div.page-content')[0];
     wpEditor.setup(newElement, {language: 'webppl'});
     return false;
   });
