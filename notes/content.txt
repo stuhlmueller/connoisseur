@@ -2,3 +2,4 @@
 - Logistic Regression
 - Bayesian Neural Nets
 - Active Learning
+- Pragmatics (visible context)

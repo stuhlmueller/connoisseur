@@ -114,13 +114,6 @@ a.ref:hover {
     display: none
 }
 
-ol li {
-    list-style-type: upper-roman
-}
-ol li ol li {
-    list-style-type: decimal;
-}
-
 header, footer {
     padding: 30px;
 }

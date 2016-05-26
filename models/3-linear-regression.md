@@ -27,20 +27,7 @@ wpEditor.put('data', data);
 data   
 ~~~~
 
-This doesn't seem to work in the browser:
-
-~~~~
-var dist = DiagCovGaussian({
-  mu: Vector([0]), 
-  sigma: Vector([2])
-});
-
-var s = sample(dist);
-
-console.log(s);
-~~~~
-
-Work-in-progress regression:
+We can use multivariate linear regression to recover this function from data:
 
 ~~~~
 var data = wpEditor.get('data');
@@ -65,10 +52,15 @@ var model = function() {
     },
     data);
 
-  return [m, b, sigma];
+  return {
+    m0: m.data[0],
+    m1: m.data[1]
+  };
 }
 
-var out = Infer({method: 'MCMC', kernel: 'HMC', samples: 100}, model);
+var out = Infer({method: 'MCMC', samples: 10000}, model);
 
-out
+viz.auto(out)
 ~~~~
+
+This works, but MCMC is not an efficient method for solving this problem. HMC is [not yet available](https://github.com/probmods/webppl/issues/286) for multivariate distributions.
