@@ -1,5 +1,6 @@
-- Linear Regression
+1 Integrating low- and high-quality evidence
+2 Learning to interpret classes of evidence
+
 - Logistic Regression
-- Bayesian Neural Nets
 - Active Learning
 - Pragmatics (visible context)
