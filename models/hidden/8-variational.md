@@ -1,6 +1,7 @@
 ---
 layout: model
 title: Variational Inference for Bayesian Linear Regression
+hidden: true
 ---
 
 We can try to approach inference in Bayesian Linear Regression using mean-field variational inference:

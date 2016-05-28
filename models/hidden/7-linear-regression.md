@@ -1,6 +1,7 @@
 ---
 layout: model
 title: Bayesian Linear Regression
+hidden: true
 ---
 
 Suppose we want to predict a one-dimensional scalar output from two-dimensional scalar inputs.

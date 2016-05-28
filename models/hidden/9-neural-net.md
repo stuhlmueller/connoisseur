@@ -1,6 +1,7 @@
 ---
 layout: model
 title: Bayesian Neural Net
+hidden: true
 ---
 
 ~~~~
