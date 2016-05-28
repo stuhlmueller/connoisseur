@@ -51,4 +51,4 @@ vizDim(modelDist, 'aliceReliability');
 vizDim(modelDist, 'bobReliability');
 ~~~~
 
-Alice's inferred reliability is much higher than Bob's.
+Alice's inferred reliability is much higher than Bob's. Note that we never observed the latent variable `latentQuality` directly.
