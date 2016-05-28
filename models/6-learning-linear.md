@@ -1,50 +1,17 @@
 ---
 layout: model
-title: Priors on Linear Functions
+title: Learning Multivariate Linear Functions
 ---
 
-We can interpret matrices as linear functions:
+First, we need a loss function that compares actual and desired function output.
+
+We use the squared-error loss:
 
 ~~~~
-var M = Matrix([
-  [1,3,1],
-  [2,1,4]
-]);
-
-var input = T.transpose(Vector([1, 5]));
-
-var f = function(x) {
-  return T.dot(x, M);
-}
-
-f(input);
-~~~~
-
-We can sample Gaussian matrices:
-
-~~~~
-var sampleGaussianMatrix = function(dims, mean, variance){
-  var length = dims[0] * dims[1];
-  var dist = DiagCovGaussian({
-    mu: Vector(repeat(length, constF(mean))),
-    sigma: Vector(repeat(length, constF(variance)))
-  });
-  var g = sample(dist);
-  return T.reshape(g, dims);
+var squaredError = function(m1, m2) {
+  var x = T.add(m1, T.mul(m2, -1));
+  return T.sumreduce(T.mul(x, x));
 };
-
-wpEditor.put('sampleGaussianMatrix', sampleGaussianMatrix);
-
-sampleGaussianMatrix([2, 3], 0, 1);
-~~~~
-
-To compare actual and desired function output, we use a squared-error loss function:
-
-~~~~
-var squaredError = function(a, b) {
-  var err = T.sumreduce(T.add(a, T.mul(b, -1)));
-  return err * err;
-}
 
 var f = function(x){
   return squaredError(Vector([1, 2]), Vector([x, 2]));
@@ -56,10 +23,10 @@ map(f, [1, 2, 3, 4]);
 This works for transposed (column) vectors as well:
 
 ~~~~
-var squaredError = function(a, b) {
-  var err = T.sumreduce(T.add(a, T.mul(b, -1)));
-  return err * err;
-}
+var squaredError = function(m1, m2) {
+  var x = T.add(m1, T.mul(m2, -1));
+  return T.sumreduce(T.mul(x, x));
+};
 
 var f = function(x){
   return squaredError(
@@ -82,7 +49,17 @@ Matrix([
 Let's first try to do this using MCMC (with proposals from the prior):
 
 ~~~~
-var sampleGaussianMatrix = wpEditor.get('sampleGaussianMatrix');
+var sampleGaussianMatrix = function(dims, mean, variance){
+  var length = dims[0] * dims[1];
+  var dist = DiagCovGaussian({
+    mu: Vector(repeat(length, constF(mean))),
+    sigma: Vector(repeat(length, constF(variance)))
+  });
+  var g = sample(dist);
+  return T.reshape(g, dims);
+};
+
+wpEditor.put('sampleGaussianMatrix', sampleGaussianMatrix);
 
 var data = [
   {input: [1, 2], output: [1, 2, 3]},
@@ -91,10 +68,10 @@ var data = [
   {input: [-2, 2], output: [-2, 2, 0]}
 ];
 
-var squaredError = function(a, b) {
-  var err = T.sumreduce(T.add(a, T.mul(b, -1)));
-  return err * err;
-}
+var squaredError = function(m1, m2) {
+  var x = T.add(m1, T.mul(m2, -1));
+  return T.sumreduce(T.mul(x, x));
+};
 
 var model = function() {
   var M = sampleGaussianMatrix([2, 3], 0, 1);
@@ -147,10 +124,10 @@ var data = [
   {input: [-2, 2], output: [-2, 2, 0]}
 ];
 
-var squaredError = function(a, b) {
-  var err = T.sumreduce(T.add(a, T.mul(b, -1)));
-  return err * err;
-}
+var squaredError = function(m1, m2) {
+  var x = T.add(m1, T.mul(m2, -1));
+  return T.sumreduce(T.mul(x, x));
+};
 
 var model = function() {
   var M = sampleGaussianMatrix([2, 3], 0, 1, 0);
@@ -166,8 +143,10 @@ var model = function() {
   factor(-totalError);
   
   // Test
-  return f(T.transpose(Vector([1, 3]))).data;
-  // return M.data;
+  return {
+    test: f(T.transpose(Vector([1, 3]))).data,
+    matrix: M.data
+  };
 }
 
 var params = Optimize(model, {
@@ -177,7 +156,13 @@ var params = Optimize(model, {
   },
   estimator: {ELBO: {samples: 20}}});
 
-viz.auto(SampleGuide(model, {params: params, samples: 500}));
+var modelDist = SampleGuide(model, {params: params, samples: 500});
+
+map(function(i){
+  viz.auto(Enumerate(function(){return sample(modelDist).test[i];}));
+}, [0, 1, 2]);
+
+modelDist.support()[0].matrix
 ~~~~
 
-This also doesn't seem to work yet.
+The resulting matrix looks as expected.
