@@ -123,3 +123,7 @@ header {
     font-size: 80%;
     text-align: left;
 }
+
+li p {
+    margin: .5em;
+}
