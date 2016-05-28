@@ -73,7 +73,7 @@ map(f, [1, 2, 3, 4]);
 Taken together, we can try to learn multi-dimensional linear functions from data. We'll try to learn a matrix that outputs the two numbers it gets as inputs, and also their sum. That is, our desired output looks like this:
 
 ~~~~
-var M = Matrix([
+Matrix([
     [1, 0, 1],
     [0, 1, 1]
 ]);
@@ -121,3 +121,63 @@ testDist.support();
 ~~~~
 
 Unsurprisingly, the acceptance ratio is really small (0.0036).
+
+We can approach the problem using variational inference as well. To do so, we now provide a guide distribution for the matrix prior and optimize its parameters.
+
+~~~~
+var sampleGaussianMatrix = function(dims, mean, variance, guideMean){  
+  var length = dims[0] * dims[1];
+  var dist = DiagCovGaussian({
+    mu: Vector(repeat(length, constF(mean))),
+    sigma: Vector(repeat(length, constF(variance)))
+  });
+  var guideMean = param([length,1], 0, 0.1);
+  var guide = DiagCovGaussian({
+    mu: guideMean,
+    sigma: Vector(repeat(length, constF(0.001)))
+  });
+  var g = sample(dist, {guide: guide});
+  return T.reshape(g, dims);
+};
+
+var data = [
+  {input: [1, 2], output: [1, 2, 3]},
+  {input: [4, 5], output: [4, 5, 9]},
+  {input: [0, 0], output: [0, 0, 0]},
+  {input: [-2, 2], output: [-2, 2, 0]}
+];
+
+var squaredError = function(a, b) {
+  var err = T.sumreduce(T.add(a, T.mul(b, -1)));
+  return err * err;
+}
+
+var model = function() {
+  var M = sampleGaussianMatrix([2, 3], 0, 1, 0);
+  var f = function(x) {
+    return T.dot(x, M);
+  }
+  
+  // Condition on data
+  var totalError = sum(map(function(datum){
+    var x = T.transpose(Vector(datum.input));
+    return squaredError(f(x), Vector(datum.output));
+  }, data));
+  factor(-totalError);
+  
+  // Test
+  return f(T.transpose(Vector([1, 3]))).data;
+  // return M.data;
+}
+
+var params = Optimize(model, {
+  steps: 1000,
+  method: {
+    gd: {stepSize: 0.001}
+  },
+  estimator: {ELBO: {samples: 20}}});
+
+viz.auto(SampleGuide(model, {params: params, samples: 500}));
+~~~~
+
+This also doesn't seem to work yet.
