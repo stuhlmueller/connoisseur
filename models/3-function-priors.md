@@ -1,6 +1,6 @@
 ---
 layout: model
-title: Priors on Functions
+title: Priors on Linear Functions
 ---
 
 We can interpret matrices as linear functions:

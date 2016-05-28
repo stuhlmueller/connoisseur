@@ -1,6 +1,6 @@
 ---
 layout: model
-title: Multivariate Distributions
+title: Multivariate Gaussian Distributions
 ---
 
 We first build a function that helps us visualize two-dimensional distributions:
