@@ -1,0 +1,80 @@
+
+// Plan
+// Sample a latent variable (scalar).
+// Generate variables that are function of it (with different conditional
+// dependence assumptions)
+
+
+// version with conditional independence of z variables
+
+
+
+var getZGold = function(u,params){
+  return Gaussian( {mu:u, sigma:params.goldSigma} ) ;
+};
+
+var getZBias = function(u,params){
+  var constant = params.biasConstant;
+  var sigma = params.biasSigma;
+  
+  return Gaussian( {mu:u+constant, sigma:sigma} );
+};
+
+
+var getDataPoint = function(u, params){
+  return {
+    zGold: sample(getZGold(u,params)),
+    zBias: sample(getZBias(u,params)),
+  };
+};
+
+// Priors on U and params
+var priorU = function(){return sample(Gaussian({mu:0, sigma:1}))};
+
+var priorParams = function(){
+  return {
+    goldSigma: sample(Gamma({shape:1, scale:1})),
+    biasSigma: sample(Gamma({shape:1, scale:1})),
+    biasConstant: sample(Gaussian({mu:0, sigma:1}))
+  };
+};
+
+// Actual values U and params
+
+var params = {
+  goldSigma: .1, 
+  biasConstant: .5,
+  biasSigma: .2
+};
+
+var u = 1;
+
+var data = repeat( 4, function(){getDataPoint(u,params);});
+
+console.log({actualU:u, actualParams:params, data:data});
+print({actualU:u, actualParams:params, data:data});
+
+
+
+var conditionU = function(){
+  var u = priorU();
+  var params = priorParams();
+
+  map(
+    function(dataPoint){
+      factor( getZGold(u,params).score( dataPoint.zGold) );
+      factor( getZBias(u,params).score( dataPoint.zBias) );
+    },
+    data)
+
+  return {u:u, params:params};
+};
+
+var out = Infer({method: 'MCMC', samples: 10000}, conditionU);
+
+viz.out(out);
+
+
+
+  
+
