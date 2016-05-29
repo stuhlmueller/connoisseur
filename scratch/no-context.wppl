@@ -1,13 +1,19 @@
 
-// Plan
-// Sample a latent variable (scalar).
-// Generate variables that are function of it (with different conditional
-// dependence assumptions)
 
 
-// version with conditional independence of z variables
+
+// This instance. u is now a variable sampled from an unknown distribution
+// that we don't model. The goal is to predict u conditional on the z variables. 
+// We can have the same prior over functions from u to z. 
+
+var getMarginal = function(erp,key){
+  return Enumerate(function(){
+    return sample(erp)[key];
+  });
+};
 
 
+// functional form relating u to zGold and zBias
 
 var getZGold = function(u,params){
   return Gaussian( {mu:u, sigma:params.goldSigma} ) ;
@@ -15,28 +21,31 @@ var getZGold = function(u,params){
 
 var getZBias = function(u,params){
   var constant = params.biasConstant;
-  var sigma = params.biasSigma;
-  
+  var sigma = params.biasSigma; 
   return Gaussian( {mu:u+constant, sigma:sigma} );
 };
 
 
-var getDataPoint = function(u, params){
-  return {
-    zGold: sample(getZGold(u,params)),
-    zBias: sample(getZBias(u,params)),
-  };
-};
-
 // Priors on U and params
 var priorU = function(){return sample(Gaussian({mu:0, sigma:1}))};
 
-var priorParams = function(){
-  return {
-    goldSigma: sample(Gamma({shape:1, scale:1})),
-    biasSigma: sample(Gamma({shape:1, scale:1})),
-    biasConstant: sample(Gaussian({mu:0, sigma:1}))
-  };
+var priorParams = function(biasDependsGold){
+  if (!biasDependsGold){
+    return {
+      goldSigma: sample(Gamma({shape:1, scale:1})),
+      biasSigma: sample(Gamma({shape:1, scale:1})),
+      biasConstant: sample(Gaussian({mu:0, sigma:1}))
+    };
+  } else {
+    var goldSigma = sample(Gamma({shape:1, scale:1}));
+    var biasSigma = goldSigma + sample(Gamma({shape:1, scale:1}));
+
+    return {
+      goldSigma: goldSigma,
+      biasSigma: biasSigma, 
+      biasConstant: sample(Gaussian({mu:0, sigma:1}))
+    };
+  }
 };
 
 // Actual values U and params
@@ -49,32 +58,60 @@ var params = {
 
 var u = 1;
 
-var data = repeat( 4, function(){getDataPoint(u,params);});
+var getDataPoint = function(u, params){
+  return {
+    u: u,
+    zGold: sample(getZGold(u,params)).toPrecision(3),
+    zBias: sample(getZBias(u,params)).toPrecision(3),
+  };
+};
 
-console.log({actualU:u, actualParams:params, data:data});
-print({actualU:u, actualParams:params, data:data});
+var generateData = function(numberDataPoints, params){
+  return repeat( numberDataPoints,
+                 function(){return getDataPoint(priorU(),params);})
+};                    
+                   
+                   
+var numberDataPoints = 1000;
+var data = generateData(numberDataPoints,params);
+wpEditor.put('data', data);
 
+print( "viz.scatter( _.map(data,'u'), _.map(data,'zGold') )")
+viz.scatter( _.map(data,'u'), _.map(data,'zGold') );
+
+print( "viz.scatter( _.map(data,'u'), _.map(data,'zBias') )")
+viz.scatter( _.map(data,'u'), _.map(data,'zBias') );
+
+print( "viz.scatter( _.map(data,'zBias'), _.map(data,'zGold') )")
+viz.scatter( _.map(data,'zBias'), _.map(data,'zGold') );
 
 
 var conditionU = function(){
   var u = priorU();
-  var params = priorParams();
+  var params = priorParams( false );
 
   map(
     function(dataPoint){
       factor( getZGold(u,params).score( dataPoint.zGold) );
       factor( getZBias(u,params).score( dataPoint.zBias) );
     },
-    data)
+    data);
 
-  return {u:u, params:params};
+  return {u:u, 
+          goldSigma: params.goldSigma,
+          biasConstant: params.biasConstant,
+          biasSigma: params.biasSigma
+         };
 };
 
-var out = Infer({method: 'MCMC', samples: 10000}, conditionU);
+// var out = Infer({method: 'MCMC', samples: 10000}, conditionU);
 
-viz.out(out);
+// // display distribution on each variable
+// var latents = ['u', 'goldSigma', 'biasSigma', 'biasConstant'];
+// map( function(latent){
+//   print('variable name: ' + latent);
+//   var erp = getMarginal(out,latent);
+//   viz.auto(erp);
+// }, latents);
 
-
-
-  
-
+null;
