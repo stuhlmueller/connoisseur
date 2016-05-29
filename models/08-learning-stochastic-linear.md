@@ -5,6 +5,8 @@ title: Learning Stochastic Multivariate Linear Functions
 
 This is essentially the same as what we have seen previously when we learned multivariate linear functions, except now we are using the function prior that supplies its function with an additional noise input, and thus we learn conditional distributions instead of deterministic functions.
 
+We'll also supply our functions with an additional unit input, as is usual in Bayesian regression.
+
 As before, we will use variational inference.
 
 ~~~~
@@ -24,11 +26,11 @@ var sampleGaussianMatrix = function(dims, mean, variance, guideMean){
 };
 
 var functionPrior = function(dims) {
-  var matrixDims = [dims[0] + 1, dims[1]];
+  var matrixDims = [dims[0] + 2, dims[1]];
   var matrix = sampleGaussianMatrix(matrixDims, 0, 1, 0);
   var f = function(x) {
     var u = sample(Uniform({a: 0, b: 1}), { guide: Uniform({a: 0, b: 1}) });
-    var input = T.transpose(Vector(x.concat(u)));
+    var input = T.transpose(Vector(x.concat([u, 1])));
     return T.dot(input, matrix);
   }
   _.assign(f, {'matrix': matrix});
