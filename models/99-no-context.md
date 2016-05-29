@@ -205,3 +205,88 @@ var erp2 = getMarginalPair(out,'goldSigma', 'biasSigma')
 viz.auto(erp2)
 ~~~~
 
+----------------
+
+Previously u was a constant and we got a series of iid draws of `zBias` and `zGold` which depended on this fixed value. Now `u` is a random variable with a known distribution. The goal is to infer from `zBias` alone. In our training data we get to observe both `zBias` and `zGold`.
+
+Here are samples from the generative model: 
+
+~~~~
+///fold:
+var getMarginal = function(erp,key){
+  return Enumerate(function(){
+    return sample(erp)[key];
+  });
+};
+
+
+// functional form relating u to zGold and zBias
+
+var getZGold = function(u,params){
+  return Gaussian( {mu:u, sigma:params.goldSigma} ) ;
+};
+
+var getZBias = function(u,params){
+  var constant = params.biasConstant;
+  var sigma = params.biasSigma; 
+  return Gaussian( {mu:u+constant, sigma:sigma} );
+};
+
+// Priors on U and params
+var priorU = function(){return sample(Gaussian({mu:0, sigma:1}))};
+
+var priorParams = function(biasDependsGold){
+  if (!biasDependsGold){
+    return {
+      goldSigma: sample(Gamma({shape:1, scale:1})),
+      biasSigma: sample(Gamma({shape:1, scale:1})),
+      biasConstant: sample(Gaussian({mu:0, sigma:1}))
+    };
+  } else {
+    var goldSigma = sample(Gamma({shape:1, scale:1}));
+    return {
+      goldSigma: goldSigma,
+      biasSigma: goldSigma + sample(Gamma({shape:1, scale:1})), 
+      biasConstant: sample(Gaussian({mu:0, sigma:1}))
+    };
+  }
+};
+///
+
+// Actual values U and params
+
+var params = {
+  goldSigma: .1, 
+  biasConstant: .5,
+  biasSigma: .2
+};
+
+var getDataPoint = function(u, params){
+  return {
+    u: u,
+    zGold: sample(getZGold(u,params)).toPrecision(3),
+    zBias: sample(getZBias(u,params)).toPrecision(3),
+  };
+};
+
+var generateData = function(numberDataPoints, params){
+  return repeat(numberDataPoints, 
+                function(){return getDataPoint(priorU(),params);})
+};                    
+                   
+var numberDataPoints = 500;
+var data = generateData(numberDataPoints,params);
+
+print( "u vs. zGold")
+viz.scatter( _.map(data,'u'), _.map(data,'zGold') );
+
+print( "u vs. zBias")
+viz.scatter( _.map(data,'u'), _.map(data,'zBias') );
+
+print( "zBias vs. zGold")
+viz.scatter( _.map(data,'zBias'), _.map(data,'zGold') );
+~~~~
+
+We test inference. We begin with a basic 
+
+

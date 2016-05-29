@@ -1,11 +1,4 @@
-
-
-
-
-// This instance. u is now a variable sampled from an unknown distribution
-// that we don't model. The goal is to predict u conditional on the z variables. 
-// We can have the same prior over functions from u to z. 
-
+///fold:
 var getMarginal = function(erp,key){
   return Enumerate(function(){
     return sample(erp)[key];
@@ -25,7 +18,6 @@ var getZBias = function(u,params){
   return Gaussian( {mu:u+constant, sigma:sigma} );
 };
 
-
 // Priors on U and params
 var priorU = function(){return sample(Gaussian({mu:0, sigma:1}))};
 
@@ -38,15 +30,14 @@ var priorParams = function(biasDependsGold){
     };
   } else {
     var goldSigma = sample(Gamma({shape:1, scale:1}));
-    var biasSigma = goldSigma + sample(Gamma({shape:1, scale:1}));
-
     return {
       goldSigma: goldSigma,
-      biasSigma: biasSigma, 
+      biasSigma: goldSigma + sample(Gamma({shape:1, scale:1})), 
       biasConstant: sample(Gaussian({mu:0, sigma:1}))
     };
   }
 };
+///
 
 // Actual values U and params
 
@@ -55,8 +46,6 @@ var params = {
   biasConstant: .5,
   biasSigma: .2
 };
-
-var u = 1;
 
 var getDataPoint = function(u, params){
   return {
@@ -67,51 +56,86 @@ var getDataPoint = function(u, params){
 };
 
 var generateData = function(numberDataPoints, params){
-  return repeat( numberDataPoints,
-                 function(){return getDataPoint(priorU(),params);})
+  return repeat(numberDataPoints, 
+                function(){return getDataPoint(priorU(),params);})
 };                    
                    
-                   
-var numberDataPoints = 1000;
+var numberDataPoints = 10;
 var data = generateData(numberDataPoints,params);
-wpEditor.put('data', data);
+var trainingData = data.slice(0,5);
+var testData = data.slice(5);  // make copy with u removed
 
-print( "viz.scatter( _.map(data,'u'), _.map(data,'zGold') )")
+print( "u vs. zGold")
 viz.scatter( _.map(data,'u'), _.map(data,'zGold') );
 
-print( "viz.scatter( _.map(data,'u'), _.map(data,'zBias') )")
+print( "u vs. zBias")
 viz.scatter( _.map(data,'u'), _.map(data,'zBias') );
 
-print( "viz.scatter( _.map(data,'zBias'), _.map(data,'zGold') )")
+print( "zBias vs. zGold")
 viz.scatter( _.map(data,'zBias'), _.map(data,'zGold') );
 
 
 var conditionU = function(){
-  var u = priorU();
   var params = priorParams( false );
 
   map(
     function(dataPoint){
+      var u = priorU();
       factor( getZGold(u,params).score( dataPoint.zGold) );
       factor( getZBias(u,params).score( dataPoint.zBias) );
     },
-    data);
-
-  return {u:u, 
-          goldSigma: params.goldSigma,
-          biasConstant: params.biasConstant,
-          biasSigma: params.biasSigma
-         };
+    trainingData);
+  
+  var testInfer = map(
+    function(dataPoint){
+      var u = priorU();
+      var zGold = sample(getZGold(u,params));
+      factor( getZBias(u,params).score( dataPoint.zBias) );
+      return {u: u, zGold:zGold, zBias:dataPoint.zBias};
+    },
+    testData);   
+  
+  return {
+    goldSigma: params.goldSigma,
+    biasConstant: params.biasConstant,
+    biasSigma: params.biasSigma,
+    testInfer: testInfer
+    };
 };
 
-// var out = Infer({method: 'MCMC', samples: 10000}, conditionU);
+var out = Infer({method: 'MCMC', samples: 50000}, conditionU);
 
-// // display distribution on each variable
-// var latents = ['u', 'goldSigma', 'biasSigma', 'biasConstant'];
-// map( function(latent){
-//   print('variable name: ' + latent);
-//   var erp = getMarginal(out,latent);
-//   viz.auto(erp);
-// }, latents);
+print('testinfer real and MAP')
+print(JSON.stringify(_.map(testData,'u')))
+print(JSON.stringify( _.map(out.MAP().val.testInfer,'u')));
 
-null;
+var squaredError = function(m1, m2) {
+  var x = T.add(m1, T.mul(m2, -1));
+  return T.sumreduce(T.mul(x, x));
+};
+
+
+var actualUValues = Vector(_.map(testData,'u'));
+var inferUValues = Vector(_.map(out.MAP().val.testInfer,'u'));
+var mseU = squaredError(actualUValues, inferUValues) / testData.length;
+print( 'mseU:' + JSON.stringify(mseU) );
+
+
+var paramsNames = ['goldSigma', 'biasSigma', 'biasConstant'];
+
+var compareMAP = function(erp){
+  var outMAP = out.MAP().val;
+  
+  return map( function(paramName){
+    return Math.abs(params[paramName] - outMAP[paramName])
+  }, paramsNames);  
+}
+print( compareMAP(out))
+
+map( function(paramName){
+  print('variable name: ' + paramName);
+  var erp = getMarginal(out, paramName);
+   viz.auto(erp);
+ }, paramsNames);
+
+null
