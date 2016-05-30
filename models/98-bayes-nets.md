@@ -94,6 +94,17 @@ Again this is close to Model 2. Suppose we are learning a matrix/net for `u` and
 ## Model 5: Learn conditional distribution directly
 Marginalize out some variables and reverse some arrows. You are learning 
 
+-------
+
+### Notes
+
+- sky labelling example from lawrence (could label/segment other elements in this way). example of simultaneous parallel classification of many digits/objects in images. could potentially deal with very noisy side-info with a complex distortion/warping of the data, at least if there's enough gold-standard training data that you can learn something of how the biased source relates to u via the gold-standard. 
+
+- contextual bandits (as a generalization from supervised problem with biased signals)
+
+- self-driving car example. easy to give sparse feedback (don't crash). very time consuming to give bespoke feedback. could use a car simulator as noisy signal for what action to take for a self-driving bike (often good advice but sometimes bad). huge human effort to give feedback on every little action. human can give after the fact assessment (maybe conflates lots of different features of driving) and AI would like to get signals that help predict after-the-fact assessment. similar to dialog case in that you want information about which small-scale "actions" to take (which edits/contributions to accept in dialog case) but it's too expensive to ask the human expert about all such cases. (also consider: safe exploration in the driving case as in driving on road with humans vs. driving in simulations. fact that humans are probably bad at dealing with unlikely collisions/accident scenarios and so good human feedback is especially expensive in that case).  
+
+
 
 
 
