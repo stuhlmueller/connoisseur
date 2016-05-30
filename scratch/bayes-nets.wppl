@@ -12,3 +12,58 @@
 // shared functions across generate data and infer
 // u(x), b(u(x))
 
+var priorU = function(){
+  //var a = Vector( repeat( dim, function(){return sample(Gaussian({mu:0, sigma:1}));}) )
+  var a = sample(Gaussian({mu:0, sigma:1}));
+  return function(x){return a*x;}
+};
+
+var priorB = function(){
+  var biasConstant = sample(Gaussian({mu:0, sigma:1}));
+  var biasSigma = sample(Gamma({shape:1, scale:1}));
+  return function(u){
+    return u + biasConstant + sample(Gaussian({mu:0, sigma:biasSigma}));
+  };
+};
+
+var getDatumGivenContext = function(x, params){
+  var u = params.u;
+  var b = params.b;
+  var ux = u(x);
+  return {x:x, u:ux, b: b(ux)};
+};
+
+var generateData = function(N, priorX, params){
+  var xs = repeat(N,priorX);
+  
+  return map(function(x){
+    return getDatumGivenContext(x, params);
+  }, xs); 
+};
+
+var priorX = function(){return sample(Gaussian({mu:0, sigma:1}));};
+var params = {
+  u: function(x){return 2*x}, 
+  b: function(u){return u + 1 + sample(Gaussian({mu:0, sigma:0.5}))}
+};
+
+var trainingData = generateData(5, priorX, params);
+var testData = generateData(5, priorX, params);
+
+
+var errorOnData = function(f, data) {
+  var error = sum(map(function(datum){
+    var input = datum.features.concat(datum.ratings);
+    return squaredError(f(input), Vector(datum.judgment));
+  }, data));
+  return error;
+};
+
+
+var model = function(){
+  var params = {u: priorU(), b:priorB()};
+
+  var trainError
+  
+
+
