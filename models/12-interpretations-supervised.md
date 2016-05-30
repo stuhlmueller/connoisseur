@@ -115,7 +115,7 @@ map(function(datum){
 }, testData)
 ~~~~
 
-This works well---unsurprisingly, since our data-generating function is mostly linear and we're simply using regression.
+This works well---unsurprisingly, since our data-generating function is mostly linear and we're using a form of regression.
 
 Extension:
 
