@@ -1,0 +1,14 @@
+// Model 1
+
+
+// **generate data**
+// this needs a prior on x (which we don't need for inference since x is always observed)
+
+
+// infer:
+// sample params to be learned, generate data, then do some kind of
+// comparison, using a score or an error function
+
+// shared functions across generate data and infer
+// u(x), b(u(x))
+
