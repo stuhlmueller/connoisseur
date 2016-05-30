@@ -1,6 +1,7 @@
 ---
 layout: model
 title: Target and side-information but no context
+author: Owain
 ---
 
 ### Simplest example

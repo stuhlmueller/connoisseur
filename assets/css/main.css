@@ -127,3 +127,7 @@ header {
 li p {
     margin: .5em;
 }
+
+span.author {
+    color: #999;
+}
