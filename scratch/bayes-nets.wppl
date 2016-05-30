@@ -1,14 +1,118 @@
 // Model 1
 
 
-// **generate data**
-// this needs a prior on x (which we don't need for inference since x is always observed)
+// Generative model 
+
+var getDatumGivenContext = function(x, params){
+  var u = params.u;
+  var b = params.b;
+  var ux = u(x);
+  var bx = b(ux);
+  return {x:x, u:ux, b: bx};
+};
 
 
-// infer:
-// sample params to be learned, generate data, then do some kind of
-// comparison, using a score or an error function
 
-// shared functions across generate data and infer
-// u(x), b(u(x))
+// Priors on U and B (for inference)
 
+var priorU = function(){
+  //var a = Vector( repeat( dim, function(){return sample(Gaussian({mu:0, sigma:1}));}) )
+  var a = sample(Gaussian({mu:0, sigma:2}));
+  return {f: function(x){return a*x;}, 
+          params:{a:a}};
+};
+
+
+var priorB = function(){
+  var biasConstant = sample(Gaussian({mu:0, sigma:1}));
+  var biasSigma = sample(Gamma({shape:1, scale:1}));
+  var f = function(u){
+      return u + biasConstant + sample(Gaussian({mu:0, sigma:biasSigma}));
+  }
+  return {f: f,
+          params: {biasConstant:biasConstant, biasSigma:biasSigma}
+         };
+};
+
+
+var priorParams = function(){
+  var u = priorU();
+  var b = priorB();
+  return {
+    u: u.f,
+    b: b.f,
+    uParams: u.params,
+    bParams: b.params
+  };
+};
+
+
+// Generate train and test data
+var generateData = function(N, priorX, params){
+  var xs = repeat(N,priorX);
+  
+  return map(function(x){
+    return getDatumGivenContext(x, params);
+  }, xs); 
+};
+
+var priorX = function(){return sample(Gaussian({mu:0, sigma:1}));};
+
+var params = {
+  u: function(x){return 2*x},
+  uParams: {a:2},
+  b: function(u){return u + 1 + sample(Gaussian({mu:0, sigma:0.5}))},
+  bParams: {biasConstant:1, biasSigma:0.5}
+};
+
+var trainingData = generateData(20, priorX, params);
+var testData = generateData(20, priorX, params);
+
+
+// Condition on data
+
+// function to measure distance/error between true and predicted u(x)
+var squaredError = function(x,y){return (x-y)*(x-y);};
+
+var errorOnData = function(params, data) {
+  return map(function(datum){
+    var predictedDatum = getDatumGivenContext(datum.x, params);    
+    var uError = squaredError(predictedDatum.u, datum.u);
+    var bError = squaredError(predictedDatum.b, datum.b);
+    return {u: uError, 
+            b:bError, 
+            sum: uError + bError};
+  }, data);
+};
+
+
+var model = function(){
+  var params = priorParams();
+ 
+  var trainError = sum(_.map(errorOnData(params, trainingData), 'sum'));
+  factor(-trainError);
+
+  var N = testData.length;
+  var testError = (1/N)*sum(_.map(errorOnData(params, testData), 'u'))
+ 
+  return {params: params, testError: testError};
+};
+
+
+var erp = Infer({method:'MCMC', samples:10000, verbose:false}, model);
+
+print('true params: ' + JSON.stringify(params) );
+print('\n\n MAP for model' + JSON.stringify(erp.MAP().val.params) );
+
+
+var parameterU = Enumerate(function(){
+  return sample(erp).params.uParams;
+});
+
+var testErrorMarginal = Enumerate(function(){
+  return sample(erp).testError;
+});
+
+
+viz.auto(parameterU)
+viz.auto(testErrorMarginal);
