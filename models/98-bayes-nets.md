@@ -29,12 +29,12 @@ Note: we use plate notation for the series of observations of `x_i` and function
 
 
 ### Concrete example:
-x ~ N(0,1)
-u(x) = a(x), where a ~ N(0,1)
-b_i = b(u_i) = u_i + constant + e_b, where constant ~ N(0,1) and e_b ~ Gamma(1,1)
+- x ~ N(0,1)
+- u(x) = a(x), where a ~ N(0,1)
+- b_i = b(u_i) = u_i + constant + e_b, where constant ~ N(0,1) and e_b ~ Gamma(1,1)
 
 **Training**: (x_i, u(x_i), b(u(x_i)) )
-**Test**: (x_i, b(u(x_i) ))  ->  `u(x_i)`
+<br>**Test**: (x_i, b(u(x_i) ))  ->  `u(x_i)`
 
 ### Comments on P( `u(x_i)` | b_i, x_i, training):
 How does b_i (the biased side-information for observation x_i) help predict `u(x_i)`? Suppose we are fairly uncertain about `u(x_i)` because `x_i` is outside the training data. We might have learned that `b` has low noise and low bias. And so `u(x_i)` is likely close to b_i. 
@@ -50,12 +50,12 @@ If the biased side-info depends directly on the utility, then we can't represent
 We need a prior on `u` and `b` that makes them dependent. This is generally done by parameterizing the functions and having them share some parameters. One option is to have a single matrix or neural network from vector `x` to vector `(u(x), b(x))` and have a prior that promotes similar functions for each output. 
 
 ### Concrete example
-x ~ N(0,1)
-u(x) = a(x), where a ~ N(0,1)
-b_i = b(x_i) = (a+b)x + e, where `b` ~ N(0,1), e ~ Gamma(1,1)
+- x ~ N(0,1)
+- u(x) = a(x), where a ~ N(0,1)
+- b_i = b(x_i) = (a+b)x + e, where `b` ~ N(0,1), e ~ Gamma(1,1)
 
 **Training**: (x_i, u(x_i), b(x_i) )
-**Test**: (x_i, b(x_i))  ->  u(x_i)
+<br>**Test**: (x_i, b(x_i))  ->  u(x_i)
 
 ### Comments on P( u(x_i) | b_i, x_i, training):
 How does b_i (the biased side-information for observation x_i) help predict `u(x_i)`? In Model 2, b(x_i) gives information about b, which gives information about `u` (since they are dependent functions). If we already know the function `b`, then learning `b(x_i)` provides us no new information about `u(x_i)`. By contrast, in Model 1 above, `b_i` can provide information about `u(x_i)` even if we already know `b`.
@@ -73,13 +73,13 @@ In this case the utility is not observed directly. Instead we observe the "gold-
 In practice, we won't be able to learn much about `u` from a small training set if the gold-standard is a very noisy function of `u(x)`.
 
 ### Concrete example
-x ~ N(0,1)
-u(x_i) = a(x_i), where a ~ N(0,1)
-g_i = g(u(x_i)) = u(x_i) + N(0,e), where e ~ Gamma(1,1)
-b_i = b(x_i) = (a+b)x + e, where `b` ~ N(0,1), e ~ Gamma(1,1)
+- x ~ N(0,1)
+- u(x_i) = a(x_i), where a ~ N(0,1)
+- g_i = g(u(x_i)) = u(x_i) + N(0,e), where e ~ Gamma(1,1)
+- b_i = b(x_i) = (a+b)x + e, where `b` ~ N(0,1), e ~ Gamma(1,1)
 
 **Training**: (x_i, g(u(x_i)), b(x_i) )
-**Test**: (x_i, b(x_i))  ->  u(x_i)
+<br>**Test**: (x_i, b(x_i))  ->  u(x_i)
 
 ### Comments on P( u(x_i) | b_i, x_i, training):
 This is very similar to the case of Model 2 above. The value b_i = b(x_i) tells us about `u(x_i)` only indirectly by telling us more about the function `b` which tells us about `u`. The only difference with Model 2 is that our training didn't provide direct observations of `u(x_i)` but only noisy ones via the gold-standard side-info. 
