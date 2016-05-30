@@ -44,6 +44,16 @@ For exact inference, we'd be inferring both `u` and b. Inference over `u` might 
 
 One crude shortcut is to learn `b` from the training data and not bother learning u. Then just use the prior on `u` to infer `u(x_i)` given b(`u(x_i)`). If `b` does not degrade `u(x_i)` too much, then we'll make reasonable estimates. 
 
+### Modeling unobserved context
+Suppose `u` is a function of the "full state", `x_full`, but that we only observe part of this state vector (or some lossy projection of it), `x_obs`. To characterize the new generative model, we need to specify a prior (unconditional) distribution on `x_full`, a condition distribution for `x_obs` given `x_full` (e.g. a projection) and then functions for `u` and `b` as above. To infer the value of `u(x_full)` given `b(u(x_full))`, we need to have a prior on `x_full`. (Strictly, we just need a prior on whatever part of `x_full` cannot be extracted from `x_obs`.)
+
+Instead of specifying or learning a prior on x_full, we can marginalize out the x_full variable and rewrite `u` as a function of `x_obs`. We need to adjust the prior on u accordingly. The function `u` will now be stochastic because the same `x_obs` input will produce outputs resulting from marginalizing out x_full. That is: P(u(x_obs) = k)  =  SUM( P(x_full / x_obs) delta( u*(x_full)=k) ).
+
+Should look up the paper by Zoubin + a statistician where they analyze graphical models resulting from marginalizing out variables in mixture models. 
+
+
+
+
 ## Model 2: Utility observed, biased side-info depends on context
 If the biased side-info depends directly on the utility, then we can't represent side-info that always ignores a particular component of x_i. So in a more flexible generative model for side-information `b` acts on `x_i` directly rather than `u(x_i)`.
 
