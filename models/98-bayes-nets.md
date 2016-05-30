@@ -1,11 +1,9 @@
 ---
 layout: model
-title: Outline of generative models
+title: Outline of possible generative models
 author: Owain
 ---
 
-
-# Outline of different possible generative models
 
 ## Notation
 
@@ -25,7 +23,9 @@ There are fixed functions `u`, `b` and `g`. There's a sequence of context observ
 This is the simplest model of learning from side information. There is a utility function `u` and a "biased side-information" function `b`. In this case, `b` acts directly on `u(x)` (e.g. by adding noise) rather than on the context `x`. There is no "gold-standard" side-information. Depending on the form of function b, this is similar to the "supervised learning with noisy labels" setting. 
 
 ### Bayes net
-Note: we use plate notation for the series of observations of `x_i` and functions of it. While `u(x_i)` depends on x_i, we will generally leave out the dependency since we won't infer anything about the marginal distribution P(x_i). 
+Note: we use plate notation for the series of observations of `x_i` and functions of it. While `u(x_i)` depends on x_i, we will generally leave out the dependency since we won't infer anything about the marginal distribution P(x_i).
+
+[Bayes nets for all models](https://goo.gl/photos/sLf4iSj6toD3w9y57). 
 
 
 ### Concrete example:
