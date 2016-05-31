@@ -1,6 +1,6 @@
 ---
 layout: model
-title: Inferring Sequences of Actions
+title: Sequential Planning as Inference
 ---
 
 Let's see if we can infer actions that lead to a specific outcome.
