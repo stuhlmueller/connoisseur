@@ -32,3 +32,5 @@ repeat(10, function(){
   print(f([1, 5]).data);
 });
 ~~~~
+
+We could also add additional inputs for other (non-uniform) distribution types.
