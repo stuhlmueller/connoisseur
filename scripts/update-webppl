@@ -2,7 +2,7 @@
 set -e
 set -x
 
-npm install --save probmods/webppl#daipp webppl-timeit@latest webppl-dp@latest
+npm install --save probmods/webppl#dev webppl-timeit@latest webppl-dp@latest
 cd node_modules/webppl
 npm install
 grunt bundle:../webppl-timeit:../webppl-dp
