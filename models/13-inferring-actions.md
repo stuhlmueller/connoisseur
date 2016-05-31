@@ -179,3 +179,5 @@ var moves = out.support()[0];
 
 showMoves(initState, moves);
 ~~~~
+
+A further significant improvement here could be to sample moves one by one instead of all at once (assuming a score function that can give informative partial credit to such sequences of moves).
