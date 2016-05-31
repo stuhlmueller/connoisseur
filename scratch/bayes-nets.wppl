@@ -5,8 +5,12 @@ var pp = function(a,b,c){
   print( JSON.stringify(a) + ' \n' + JSON.stringify(b) + 
          ' \n' +  JSON.stringify(c) );
 };
+var ash = function(){assert.ok(0,'halt');}
 
-
+var squaredDistance = function(m1, m2) {
+  var x = T.add(m1, T.mul(m2, -1));
+  return T.sumreduce(T.mul(x, x));
+};
 
 
 
@@ -21,149 +25,241 @@ var getDatumGivenContext = function(x, params){
 };
 
 
-
 // Priors on U and B (for inference)
 
-var priorU = function(fixCoefficients){
+var priorU = function(fixParams){
   var getCoefficient = function(){return sample(Gaussian({mu:0, sigma:2}));}
   
   var degree = 4;
-  var coefficients = fixCoefficients ? fixCoefficients : repeat(degree+1, getCoefficient);
+  var params = fixParams ? fixParams : 
+      {coefficients: repeat(degree+1, getCoefficient)};
   
-  var f = function(x){
+  var u = function(x){
     var value =  sum( map(function(i){
-      return coefficients[i] * Math.pow(x,i)
+      return params.coefficients[i] * Math.pow(x,i)
     }, _.range(degree+1)));
     return Gaussian({mu:value, sigma:.001});
   };
     
   return {
-    f: f,
-    params:{coefficients: coefficients}
+    u: u,
+    params:params
   };
 };
 
 
-var priorB = function(){
-  var biasConstant = sample(Gaussian({mu:0, sigma:1}));
-  var biasSigma = sample(Gamma({shape:1, scale:1}));
-  var f = function(u){
-    return Gaussian({mu:u + biasConstant, sigma:biasSigma});
+var priorB = function(fixParams){
+  var biasConstant = sample(Gaussian({mu:0, sigma:.5}));
+  var biasSigma = uniform({a:.5, b:1});
+
+  var params = fixParams ? fixParams: {biasConstant:biasConstant, biasSigma:biasSigma}
+
+  var b = function(u){
+    return Gaussian({mu:u + params.biasConstant, sigma:params.biasSigma});
   }
-  return {f: f,
-          params: {biasConstant:biasConstant, biasSigma:biasSigma}
-         };
+  return {b: b, params: params}
 };
 
 
-var priorParams = function(fixCoefficients){
-  var u = priorU(fixCoefficients);
-  var b = priorB();
+var priorParams = function(fixUParams, fixBParams){
+  var uObject = priorU(fixUParams);
+  var bObject = priorB(fixBParams);
   return {
-    u: u.f,
-    b: b.f,
-    uParams: u.params,
-    bParams: b.params
+    u: uObject.u,
+    b: bObject.b,
+    uParams: uObject.params,
+    bParams: bObject.params
   };
 };
 
 
 // Generate train and test data
-var generateData = function(N, priorX, params, xs){
-  var xs = xs ? xs : repeat(N,priorX);
-  
-  return map(function(x){
-    return getDatumGivenContext(x, params);
-  }, xs); 
+
+var getAllData = function(numberTrainingData, numberTestData){
+
+  var generateData = function(N, priorX, params, xs){
+    var xs = xs ? xs : repeat(N,priorX);
+    
+    return map(function(x){
+      return getDatumGivenContext(x, params);
+    }, xs); 
+  };
+
+  var priorX = function(){return sample(Gaussian({mu:0, sigma:1}));};
+
+  var fixUParams = {coefficients: [1,-2,-6, 0.5, 1]};
+  var fixBParams = {biasConstant: 0.5, biasSigma: 1};
+  var params = priorParams(fixUParams, fixBParams);
+
+  var testPrior = function(){return sample(Uniform({a:-1, b:3}))};
+  var trainingData = generateData(numberTrainingData, testPrior, params);  
+  var testData = generateData(numberTestData, testPrior, params);
+
+  // display function u and b
+  var displayParams = function(params){
+    print('Display true functions u and b on range [-3,3]');
+    var xs = repeat(200,function(){return sample(Uniform({a:-3,b:3}))});
+    var u = params.u
+    var b = params.b
+    var uValues =  map(function(x){return sample(u(x))}, xs);
+    viz.scatter(xs, uValues);
+    var bValues =  map(function(x){return sample(b(x))}, uValues);
+    viz.scatter(xs, bValues);
+  };
+
+  displayParams(params);
+
+  var displayData = function(trainingData, testData){
+    print('Display Training and then Test Data')
+
+    map(function(data){
+      var xs = _.map(data,'x');
+      var bs = _.map(data,'b');
+      viz.scatter(xs,bs)
+    }, [trainingData, testData]);
+  };
+
+  displayData(trainingData, testData);
+
+  return {trueParams: params,
+          trainingData: trainingData,
+          testData: testData};
 };
 
-var priorX = function(){return sample(Gaussian({mu:0, sigma:1}));};
 
-var params = priorParams([1,-2,-6, 0.5, 1]);
+var numberTrainingData = 3;
+var numberTestData = 15;
 
-var trainingData = generateData(20, priorX, params);
-var testPrior = function(){return sample(Uniform({a:2, b:4}))};
-var testData = generateData(20, testPrior, params);
+var allData = getAllData(numberTrainingData, numberTestData);
 
-// display function u and b
-var displayParams = function(params){
-  print('Display true functions u and b on range [-4,4]');
-  var xs = repeat(200,function(){return sample(Uniform({a:-4,b:4}))});
-  var u = params.u
-  var b = params.b
-  var uValues =  map(function(x){return sample(u(x))}, xs);
-  viz.scatter(xs, uValues);
-  var bValues =  map(function(x){return sample(b(x))}, uValues);
-  viz.scatter(xs, bValues);
-};
-
-displayParams(params);
-
-var displayData = function(trainingData, testData){
-  print('Display Training and then Test Data')
-
-  map(function(data){
-    var xs = _.map(data,'x');
-    var bs = _.map(data,'b');
-    viz.scatter(xs,bs)
-  }, [trainingData, testData]);
-};
-
-displayData(trainingData, testData);
-
-
-  
 
 // Condition on data
 
 // model with likeihoods: need to adjust how we treat the scores
-var model = function(){
-  var params = priorParams();
+var model = function(factorBValues){
+  var params = priorParams(false, false);
   var u = params.u
   var b = params.b
   
   map( function(datum){
     factor( u(datum.x).score(datum.u) );
     factor( b(datum.u).score(datum.b) );
-  }, trainingData);
+  }, allData.trainingData);
 
   // test score
-  var totalLikelihood = sum(map( function(datum){
-    factor( b(datum.u).score(datum.b) );
-    return u(datum.x).score(datum.u);
-  }, testData));
+  // var score = map( function(datum){
+    
+  //   var sampleU = sample(u(datum.x));
+
+  //   if (factorBValues){
+  //     factor( b(sampleU).score(datum.b) );
+  //   }
+    
+  //   return {
+  //     likelihood: u(datum.x).score(datum.u),
+  //     error: squaredDistance( Vector([sampleU]), Vector([datum.u]))
+  //   };
+  // }, allData.testData);
+
+  // var N = allData.testData.length;
   
-  return { uParams: params.uParams,
-           bParams: params.bParams,
-           totalLikelihood: totalLikelihood};
+  
+  return {
+    uParams: params.uParams,
+    bParams: params.bParams,
+    //meanLikelihood: sum(_.map(score, 'likelihood')) / N,
+    //mse: sum(_.map(score, 'error')) / N
+  };
+
 };
 
- 
-var erp = Infer({method:'MCMC', samples:10000, verbose:false}, model);
 
-print('true params: ' + JSON.stringify(params) );
-var mapCoefficients = Vector( erp.MAP().val.uParams.coefficients );
-var trueCoefficients = Vector( params.uParams.coefficients );
+var testModelBatch = function(trainingPosterior){
+  
+  return map( function(datum){
+    
+    var datumToPosterior = function(){
+//      var posterior = sample(trainingPosterior);
+      var posterior = priorParams(false,false)
+      var u = params.u
+      var b = params.b
+  
+      // var u = priorU(posterior.uParams).u;
+      // var b = priorB(posterior.bParams).b;
+      var x = datum.x
+      
+      var ux = sample(u(x));
+      factor( b(ux).score( datum.b ) )
 
-var squaredDistance = function(m1, m2) {
-  var x = T.add(m1, T.mul(m2, -1));
-  return T.sumreduce(T.mul(x, x));
+      return {x:datum.x, ux:ux};
+    };
+    
+    return Infer({method:'MCMC', lag:100, samples:100, burn:1000, verbose:true}, datumToPosterior);
+  }, allData.testData);
 };
-var diff = T.add( mapCoefficients, T.mul(trueCoefficients,-1));
-var mse = squaredDistance(mapCoefficients, trueCoefficients);
-
-pp('\n\n True vs. map coefficeints MSE:', diff, mse)
 
 
-// var parameterU = Enumerate(function(){
-//   return sample(erp).uParams;
-// });
+var displayTrainingResults = function(erp){
+  var MAP = erp.MAP().val;
+  var mapCoefficients = Vector( MAP.uParams.coefficients );
+  var trueCoefficients = Vector( allData.trueParams.uParams.coefficients );
 
-// viz.auto(parameterU)
+  var diff = T.add( mapCoefficients, T.mul(trueCoefficients,-1));
+  var mse = squaredDistance(mapCoefficients, trueCoefficients);
+  pp(' \n\n True vs. map coefficeints MSE: (difference, mse)', diff, mse);
+};
+
+
+var runModelBatch = function(){
+  var trainingPosterior = Infer({method:'MCMC', samples:5000, verbose:false}, model);
+  displayTrainingResults(trainingPosterior);
+  var datumToPosterior = testModelBatch(trainingPosterior)
+
+  var marginal = Enumerate(function(){
+    return sample(datumToPosterior[0]).ux;
+  });
+  viz.auto(marginal);
+                           
+  
+  var datumToSamples = map( function(posterior){
+    return repeat(30, function(){return sample(posterior)});
+  }, datumToPosterior);
+  var allSamples = _.flatten(datumToSamples)
+  pp('allSamples', allSamples.slice(0,3), allSamples.slice(30,33) );
+  viz.scatter(allSamples);
+};
+
+runModelBatch();
+ash();
 
 
 
 
 
 
-null;
+var displayResults = function(model){
+  var erp = Infer({method:'MCMC', samples:10000, verbose:false}, model);
+
+  var MAP = erp.MAP().val;
+  var mapCoefficients = Vector( MAP.uParams.coefficients );
+  var trueCoefficients = Vector( allData.trueParams.uParams.coefficients );
+
+  var diff = T.add( mapCoefficients, T.mul(trueCoefficients,-1));
+  var mse = squaredDistance(mapCoefficients, trueCoefficients);
+
+  pp(' \n\n True vs. map coefficeints MSE: (difference, mse)', diff, mse);
+  pp('Mean likelihood and error', MAP.meanLikelihood, MAP.mse);
+
+  var mseMarginal = Enumerate(function(){
+    return {mse: sample(erp).mse}
+  });
+  viz.auto(mseMarginal);
+};
+
+print('Model uses B. Then model that ignores B');
+var models = [function(){return model(true)},
+              function(){return model(false)}];
+
+map(displayResults, models);
+
+                          
