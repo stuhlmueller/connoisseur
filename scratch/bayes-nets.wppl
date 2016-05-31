@@ -1,5 +1,14 @@
 // Model 1
 
+var st = JSON.stringify;
+var pp = function(a,b,c){
+  print( JSON.stringify(a) + ' \n' + JSON.stringify(b) + 
+         ' \n' +  JSON.stringify(c) );
+};
+
+
+
+
 
 // Generative model 
 
@@ -15,11 +24,23 @@ var getDatumGivenContext = function(x, params){
 
 // Priors on U and B (for inference)
 
-var priorU = function(){
-  //var a = Vector( repeat( dim, function(){return sample(Gaussian({mu:0, sigma:1}));}) )
-  var a = sample(Gaussian({mu:0, sigma:2}));
-  return {f: function(x){return Gaussian({mu:a*x, sigma:.001});}, 
-          params:{a:a}};
+var priorU = function(fixCoefficients){
+  var getCoefficient = function(){return sample(Gaussian({mu:0, sigma:2}));}
+  
+  var degree = 4;
+  var coefficients = fixCoefficients ? fixCoefficients : repeat(degree+1, getCoefficient);
+  
+  var f = function(x){
+    var value =  sum( map(function(i){
+      return coefficients[i] * Math.pow(x,i)
+    }, _.range(degree+1)));
+    return Gaussian({mu:value, sigma:.001});
+  };
+    
+  return {
+    f: f,
+    params:{coefficients: coefficients}
+  };
 };
 
 
@@ -35,8 +56,8 @@ var priorB = function(){
 };
 
 
-var priorParams = function(){
-  var u = priorU();
+var priorParams = function(fixCoefficients){
+  var u = priorU(fixCoefficients);
   var b = priorB();
   return {
     u: u.f,
@@ -48,8 +69,8 @@ var priorParams = function(){
 
 
 // Generate train and test data
-var generateData = function(N, priorX, params){
-  var xs = repeat(N,priorX);
+var generateData = function(N, priorX, params, xs){
+  var xs = xs ? xs : repeat(N,priorX);
   
   return map(function(x){
     return getDatumGivenContext(x, params);
@@ -58,16 +79,40 @@ var generateData = function(N, priorX, params){
 
 var priorX = function(){return sample(Gaussian({mu:0, sigma:1}));};
 
-var params = {
-  u: function(x){return Gaussian({mu:2*x, sigma:.001})},
-  uParams: {a:2},
-  b: function(u){return Gaussian({mu:u+1, sigma:0.5})},
-  bParams: {biasConstant:1, biasSigma:0.5}
-};
+var params = priorParams([1,-2,-6, 0.5, 1]);
 
 var trainingData = generateData(20, priorX, params);
-var testData = generateData(20, priorX, params);
+var testPrior = function(){return sample(Uniform({a:2, b:4}))};
+var testData = generateData(20, testPrior, params);
 
+// display function u and b
+var displayParams = function(params){
+  print('Display true functions u and b on range [-4,4]');
+  var xs = repeat(200,function(){return sample(Uniform({a:-4,b:4}))});
+  var u = params.u
+  var b = params.b
+  var uValues =  map(function(x){return sample(u(x))}, xs);
+  viz.scatter(xs, uValues);
+  var bValues =  map(function(x){return sample(b(x))}, uValues);
+  viz.scatter(xs, bValues);
+};
+
+displayParams(params);
+
+var displayData = function(trainingData, testData){
+  print('Display Training and then Test Data')
+
+  map(function(data){
+    var xs = _.map(data,'x');
+    var bs = _.map(data,'b');
+    viz.scatter(xs,bs)
+  }, [trainingData, testData]);
+};
+
+displayData(trainingData, testData);
+
+
+  
 
 // Condition on data
 
@@ -88,7 +133,7 @@ var model = function(){
     return u(datum.x).score(datum.u);
   }, testData));
   
-  return { uParams: params.uParams, 
+  return { uParams: params.uParams,
            bParams: params.bParams,
            totalLikelihood: totalLikelihood};
 };
@@ -97,49 +142,28 @@ var model = function(){
 var erp = Infer({method:'MCMC', samples:10000, verbose:false}, model);
 
 print('true params: ' + JSON.stringify(params) );
-print('\n\n MAP for model' + JSON.stringify(erp.MAP().val) );
+var mapCoefficients = Vector( erp.MAP().val.uParams.coefficients );
+var trueCoefficients = Vector( params.uParams.coefficients );
 
-var parameterU = Enumerate(function(){
-  return sample(erp).uParams;
-});
-
-viz.auto(parameterU)
-
-
-
-
-var modelMSE = function(){
-  var squaredError = function(x,y){return (x-y)*(x-y);};
-  
-  var errorOnData = function(params, data) {
-    return map(function(datum){
-      var predictedDatum = getDatumGivenContext(datum.x, params);    
-      var uError = squaredError(predictedDatum.u, datum.u);
-      var bError = squaredError(predictedDatum.b, datum.b);
-      return {u: uError, 
-            b:bError, 
-            sum: uError + bError};
-    }, data);
-  };
-  
-  var params = priorParams();
- 
-  var trainError = sum(_.map(errorOnData(params, trainingData), 'sum'));
-  factor(-trainError);
-
-  var N = testData.length;
-  var testError = (1/N)*sum(_.map(errorOnData(params, testData), 'u'))
- 
-  return {uParams: params.uParams, 
-          bParams: params.bParams,
-          testError: testError};
+var squaredDistance = function(m1, m2) {
+  var x = T.add(m1, T.mul(m2, -1));
+  return T.sumreduce(T.mul(x, x));
 };
+var diff = T.add( mapCoefficients, T.mul(trueCoefficients,-1));
+var mse = squaredDistance(mapCoefficients, trueCoefficients);
 
-var inferModelMSE = function(){
-  var erp = Infer({method:'MCMC', samples:10000, verbose:false}, model);
-  print('true params: ' + JSON.stringify(params) );
-  print('\n\n MAP for model' + JSON.stringify(erp.MAP().val) );
-  viz.auto(parameterU)
-};
+pp('\n\n True vs. map coefficeints MSE:', diff, mse)
+
+
+// var parameterU = Enumerate(function(){
+//   return sample(erp).uParams;
+// });
+
+// viz.auto(parameterU)
+
+
+
+
+
 
 null;
