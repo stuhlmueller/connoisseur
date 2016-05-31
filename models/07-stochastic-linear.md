@@ -3,15 +3,6 @@ layout: model
 title: Priors on Stochastic Multivariate Linear Functions
 ---
 
-We can concatenate vectors as follows:
-
-~~~~
-var v = Vector([1,2]);
-var x = Vector([3]);
-
-T.concat(v, x)
-~~~~
-
 We can generate a stochastic multivariate linear function simply by concatenating a uniformly random input to our input vector, and by extending the matrix dimension appropriately:
 
 ~~~~
@@ -41,3 +32,5 @@ repeat(10, function(){
   print(f([1, 5]).data);
 });
 ~~~~
+
+We could also add additional inputs for other (non-uniform) distribution types.

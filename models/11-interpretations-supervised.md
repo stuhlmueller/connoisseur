@@ -78,12 +78,11 @@ var trainingData = wpEditor.get('trainingData');
 var testData = wpEditor.get('testData');
 ///
 
-// SHOULD BE MAP ONTO *data* 
 var errorOnData = function(f, data) {
   var error = sum(map(function(datum){
     var input = datum.features.concat(datum.ratings);
     return squaredError(f(input), Vector(datum.judgment));
-  }, trainingData));
+  }, data));
   return error;
 };
 
