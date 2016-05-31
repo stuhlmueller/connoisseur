@@ -7,7 +7,7 @@ var getDatumGivenContext = function(x, params){
   var u = params.u;
   var b = params.b;
   var ux = u(x);
-  var bx = b(ux);
+  var bx = sample(b(ux));
   return {x:x, u:ux, b: bx};
 };
 
@@ -27,7 +27,7 @@ var priorB = function(){
   var biasConstant = sample(Gaussian({mu:0, sigma:1}));
   var biasSigma = sample(Gamma({shape:1, scale:1}));
   var f = function(u){
-      return u + biasConstant + sample(Gaussian({mu:0, sigma:biasSigma}));
+    return Gaussian({mu:u + biasConstant, sigma:biasSigma});
   }
   return {f: f,
           params: {biasConstant:biasConstant, biasSigma:biasSigma}
@@ -61,7 +61,7 @@ var priorX = function(){return sample(Gaussian({mu:0, sigma:1}));};
 var params = {
   u: function(x){return 2*x},
   uParams: {a:2},
-  b: function(u){return u + 1 + sample(Gaussian({mu:0, sigma:0.5}))},
+  b: function(u){return Gaussian({mu:u+1, sigma:0.5})},
   bParams: {biasConstant:1, biasSigma:0.5}
 };
 
@@ -85,6 +85,47 @@ var errorOnData = function(params, data) {
   }, data);
 };
 
+
+// train with likelihoods instead
+// get score on the observed data. u is deterministic but
+// the score should still work
+
+var getULikelihood = function(u){
+  return function(x, ux){
+    return Gaussian({mu:u(x), sigma:.001}).score(ux);
+  };
+};
+
+var getBLikelihood = function(b){
+  return function(uValue, bUValue){
+    return b(uValue).score(bUValue);
+  };
+}
+
+// model with likeihoods: need to adjust how we treat the scores
+var modelTwo = function(){
+  var params = priorParams();
+  var uLikelihood = getULikelihood(u);
+  
+  map( function(datum){
+    var x = datum.x;
+    factor( uLikelihood(x, datum.u) );
+    factor( b(datum.u).score(datum.b) );
+  }, trainingData);
+
+  // test score
+  var scores = map( function(datum){
+    var x = datum.x;
+    factor( b(datum.u).score(datum.b) );
+    return {uScore: uLikelihood(x, datum.u)}
+  }, testData);
+  
+  return { uParams: params.uParams, 
+           bParams: params.bParams,
+           scores: scores};
+};
+           
+  
 
 var model = function(){
   var params = priorParams();
