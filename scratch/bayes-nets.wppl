@@ -6,7 +6,7 @@
 var getDatumGivenContext = function(x, params){
   var u = params.u;
   var b = params.b;
-  var ux = u(x);
+  var ux = sample(u(x));
   var bx = sample(b(ux));
   return {x:x, u:ux, b: bx};
 };
@@ -18,7 +18,7 @@ var getDatumGivenContext = function(x, params){
 var priorU = function(){
   //var a = Vector( repeat( dim, function(){return sample(Gaussian({mu:0, sigma:1}));}) )
   var a = sample(Gaussian({mu:0, sigma:2}));
-  return {f: function(x){return a*x;}, 
+  return {f: function(x){return Gaussian({mu:a*x, sigma:.001});}, 
           params:{a:a}};
 };
 
@@ -59,7 +59,7 @@ var generateData = function(N, priorX, params){
 var priorX = function(){return sample(Gaussian({mu:0, sigma:1}));};
 
 var params = {
-  u: function(x){return 2*x},
+  u: function(x){return Gaussian({mu:2*x, sigma:.001})},
   uParams: {a:2},
   b: function(u){return Gaussian({mu:u+1, sigma:0.5})},
   bParams: {biasConstant:1, biasSigma:0.5}
@@ -71,63 +71,57 @@ var testData = generateData(20, priorX, params);
 
 // Condition on data
 
-// function to measure distance/error between true and predicted u(x)
-var squaredError = function(x,y){return (x-y)*(x-y);};
-
-var errorOnData = function(params, data) {
-  return map(function(datum){
-    var predictedDatum = getDatumGivenContext(datum.x, params);    
-    var uError = squaredError(predictedDatum.u, datum.u);
-    var bError = squaredError(predictedDatum.b, datum.b);
-    return {u: uError, 
-            b:bError, 
-            sum: uError + bError};
-  }, data);
-};
-
-
-// train with likelihoods instead
-// get score on the observed data. u is deterministic but
-// the score should still work
-
-var getULikelihood = function(u){
-  return function(x, ux){
-    return Gaussian({mu:u(x), sigma:.001}).score(ux);
-  };
-};
-
-var getBLikelihood = function(b){
-  return function(uValue, bUValue){
-    return b(uValue).score(bUValue);
-  };
-}
-
 // model with likeihoods: need to adjust how we treat the scores
-var modelTwo = function(){
+var model = function(){
   var params = priorParams();
-  var uLikelihood = getULikelihood(u);
+  var u = params.u
+  var b = params.b
   
   map( function(datum){
-    var x = datum.x;
-    factor( uLikelihood(x, datum.u) );
+    factor( u(datum.x).score(datum.u) );
     factor( b(datum.u).score(datum.b) );
   }, trainingData);
 
   // test score
-  var scores = map( function(datum){
-    var x = datum.x;
+  var totalLikelihood = sum(map( function(datum){
     factor( b(datum.u).score(datum.b) );
-    return {uScore: uLikelihood(x, datum.u)}
-  }, testData);
+    return u(datum.x).score(datum.u);
+  }, testData));
   
   return { uParams: params.uParams, 
            bParams: params.bParams,
-           scores: scores};
+           totalLikelihood: totalLikelihood};
 };
-           
-  
 
-var model = function(){
+ 
+var erp = Infer({method:'MCMC', samples:10000, verbose:false}, model);
+
+print('true params: ' + JSON.stringify(params) );
+print('\n\n MAP for model' + JSON.stringify(erp.MAP().val) );
+
+var parameterU = Enumerate(function(){
+  return sample(erp).uParams;
+});
+
+viz.auto(parameterU)
+
+
+
+
+var modelMSE = function(){
+  var squaredError = function(x,y){return (x-y)*(x-y);};
+  
+  var errorOnData = function(params, data) {
+    return map(function(datum){
+      var predictedDatum = getDatumGivenContext(datum.x, params);    
+      var uError = squaredError(predictedDatum.u, datum.u);
+      var bError = squaredError(predictedDatum.b, datum.b);
+      return {u: uError, 
+            b:bError, 
+            sum: uError + bError};
+    }, data);
+  };
+  
   var params = priorParams();
  
   var trainError = sum(_.map(errorOnData(params, trainingData), 'sum'));
@@ -136,24 +130,16 @@ var model = function(){
   var N = testData.length;
   var testError = (1/N)*sum(_.map(errorOnData(params, testData), 'u'))
  
-  return {params: params, testError: testError};
+  return {uParams: params.uParams, 
+          bParams: params.bParams,
+          testError: testError};
 };
 
+var inferModelMSE = function(){
+  var erp = Infer({method:'MCMC', samples:10000, verbose:false}, model);
+  print('true params: ' + JSON.stringify(params) );
+  print('\n\n MAP for model' + JSON.stringify(erp.MAP().val) );
+  viz.auto(parameterU)
+};
 
-var erp = Infer({method:'MCMC', samples:10000, verbose:false}, model);
-
-print('true params: ' + JSON.stringify(params) );
-print('\n\n MAP for model' + JSON.stringify(erp.MAP().val.params) );
-
-
-var parameterU = Enumerate(function(){
-  return sample(erp).params.uParams;
-});
-
-var testErrorMarginal = Enumerate(function(){
-  return sample(erp).testError;
-});
-
-
-viz.auto(parameterU)
-viz.auto(testErrorMarginal);
+null;
