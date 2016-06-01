@@ -286,3 +286,10 @@ test();
 ~~~~
 
 This evaluation is very noisy, since we only have five data points to test on (but we could use arbitrarily more test data to improve on this). Due to the use of variational inference, and the selection of a single matrix/function above, we're also not correctly capturing uncertainty in our distribution over functions when we're doing prediction. We could address this by (1) computing a distribution on matrices using HMC (with independent random variable for each matrix element) and (2) storing this distribution so that we can use it for prediction.
+
+Other things to explore:
+
+- Supply non-uniform source of noise for the induced stochastic function
+- Make the actual data-generating process more complex, make prior over functions more expressive (use Bayesian neural nets), make state representation more sophisticated
+- Don't observe utility directly, only observe a "gold standard" signal some of the time
+- Observe weaker signals
