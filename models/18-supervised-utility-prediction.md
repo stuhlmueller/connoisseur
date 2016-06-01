@@ -293,3 +293,5 @@ Other things to explore:
 - Make the actual data-generating process more complex, make prior over functions more expressive (use Bayesian neural nets), make state representation more sophisticated
 - Don't observe utility directly, only observe a "gold standard" signal some of the time
 - Observe weaker signals
+- Contrast generative models (that try to model the joint distribution on state and utility) with the supervised approach (where we try to learn a stochastic function from state to utility)
+- Evaluate how this approach scales to larger datasets
