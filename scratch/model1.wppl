@@ -9,11 +9,14 @@ var pp = function(a,b,c,d,e,f){
 };
 var ash = function(){assert.ok(0,'halt');}
 
+
+
 var squaredDistance = function(m1, m2) {
   var x = T.add(m1, T.mul(m2, -1));
   return T.sumreduce(T.mul(x, x));
 };
 
+// var viz = {scatter: function(x){1;} };
 
 
 // Generative model 
@@ -29,10 +32,31 @@ var getDatumGivenContext = function(x, params){
 
 // Priors on U and B (for inference)
 
+// var priorU = function(){
+//   var getA = function(){return sample(Gaussian({mu:0, sigma:1}));}
+//   var aValues = {
+//     less0 : getA(),
+//     less1 : getA(),
+//     greater1 : getA()
+//   }
+//   var u = function(x){
+//     var a = (x<0) ? aValues.less0 :
+//         ( (x<1) ? aValues.less1 : aValues.greater1 );
+
+//     var e = sample(Gaussian({mu:0, sigma:1}));
+//     return a*x + .001*e; 
+//     //return Gaussian({mu:a*x, sigma:1}); 
+//   };
+
+//   return {u: u,
+//           params: {aValues: aValues}};          
+// };
+
 var priorU = function(fixParams){
-  var getCoefficient = function(){return sample(Gaussian({mu:0, sigma:2}));}
+  var getCoefficient = function(){return sample(Gaussian({mu:0, sigma:1}));}
   
-  var degree = 4;
+  var degree = 3;
+  
   var params = fixParams ? fixParams : 
       {coefficients: repeat(degree+1, getCoefficient)};
   
@@ -40,7 +64,7 @@ var priorU = function(fixParams){
     var value =  sum( map(function(i){
       return params.coefficients[i] * Math.pow(x,i)
     }, _.range(degree+1)));
-    return Gaussian({mu:value, sigma:.001});
+    return Gaussian({mu:value, sigma:.1});
   };
     
   return {
@@ -49,19 +73,11 @@ var priorU = function(fixParams){
   };
 };
 
-// var sampleU = function(){
-//   //var params = {coefficients: [10,0,0,0,0]}
-//   var uObject = priorU();
-//   var u = uObject.u;
-//   pp( sample(u(0.1)), sample(u(0.5)), sample(u(-0.5)), uObject.params);
-// };
-// repeat(5, sampleU);
-// ash();
 
 
 var priorB = function(fixParams){
-  var biasConstant = sample(Gaussian({mu:0, sigma:.5}));
-  var biasSigma = uniform({a:.5, b:1});
+  var biasConstant = sample(Gaussian({mu:0, sigma:1}));
+  var biasSigma = sample(Uniform({a:.05, b:1}));
 
   var params = fixParams ? fixParams: {biasConstant:biasConstant, biasSigma:biasSigma}
 
@@ -96,10 +112,10 @@ var getAllData = function(numberTrainingData, numberTestData){
     }, xs); 
   };
 
-  var priorX = function(){return sample(Gaussian({mu:0, sigma:1}));};
+ // var priorX = function(){return sample(Gaussian({mu:0, sigma:1}));};
 
-  var fixUParams = {coefficients: [1,-2,-6, 0.5, 1]};
-  var fixBParams = {biasConstant: 0.5, biasSigma: 1};
+  var fixUParams = {coefficients: [1,-2,-6, 0.5]};
+  var fixBParams = {biasConstant: 0.3, biasSigma: .05};
   var params = priorParams(fixUParams, fixBParams);
 
   var testPrior = function(){return sample(Uniform({a:-1, b:2}))};
@@ -138,10 +154,22 @@ var getAllData = function(numberTrainingData, numberTestData){
 };
 
 
-var numberTrainingData = 3;
+var numberTrainingData = 10;
 var numberTestData = 15;
 
 var allData = getAllData(numberTrainingData, numberTestData);
+
+
+var displayTrainingResults = function(erp){
+  var MAP = erp.MAP().val;
+  var mapCoefficients = Vector( MAP.uParams.coefficients );
+  var trueCoefficients = Vector( allData.trueParams.uParams.coefficients );
+
+  var diff = T.add( mapCoefficients, T.mul(trueCoefficients,-1));
+  var mse = squaredDistance(mapCoefficients, trueCoefficients);
+  pp(' \n\n True vs. map coefficeints MSE: (difference, mse)', diff, mse);
+};
+
 
 
 // Condition on data
@@ -157,11 +185,8 @@ var model = function(factorBValues){
     factor( b(datum.u).score(datum.b) );
   }, allData.trainingData);
 
-  // test score
-  // var score = map( function(datum){
-    
+  // var score = map( function(datum){  
   //   var sampleU = sample(u(datum.x));
-
   //   if (factorBValues){
   //     factor( b(sampleU).score(datum.b) );
   //   }
@@ -171,7 +196,6 @@ var model = function(factorBValues){
   //     error: squaredDistance( Vector([sampleU]), Vector([datum.u]))
   //   };
   // }, allData.testData);
-
   // var N = allData.testData.length;
   
   
@@ -185,69 +209,61 @@ var model = function(factorBValues){
 };
 
 
-var testModelBatch = function(trainingPosterior){
+var testModelBatch = function(trainingPosterior, factorBValues){
   
   return map( function(datum){
     
-    var datumToPosterior = function(){
-//      var posterior = sample(trainingPosterior);
-      var params = priorParams(false,false)
-      var u = params.u
-      var b = params.b
-  
-      // var u = priorU(posterior.uParams).u;
-      // var b = priorB(posterior.bParams).b;
-      var x = datum.x
+    var getPosterior = function(){
+      var posterior = sample(trainingPosterior);
+      var u = priorU(posterior.uParams).u;
+      var b = priorB(posterior.bParams).b;
 
-      
-      
+      var x = datum.x;  
       var ux = sample(u(x));
-      // if (1<x && x<1.5){
-      //   pp('uParams, x, u(x)', params.uParams, x, ux)
-      // }
-      //factor( b(ux).score( datum.b ) )
+      
+      if (factorBValues){
+        factor( b(ux).score( datum.b ) );
+      }
 
       return {x:datum.x, ux:ux};
     };
     
-//    return Infer({method:'MCMC', kernel:'HMC', burn:100, samples:1000}, datumToPosterior);
-    return Infer({method:'rejection', samples:1000}, datumToPosterior);
+    return Infer({method:'MCMC', 
+                  //kernel: {HMC: {steps:5, stepSize:.1}},
+                  burn:20, 
+                  lag:10,
+                  samples:100,
+                 },
+                 getPosterior);
+    
   }, allData.testData);
 };
 
+var displayModelBatch = function(datumToPosterior){
+  
+  var datumToSamples = map( function(posterior){
+    return repeat(50, function(){return sample(posterior)});
+  }, datumToPosterior);
 
-
-
-
-var displayTrainingResults = function(erp){
-  var MAP = erp.MAP().val;
-  var mapCoefficients = Vector( MAP.uParams.coefficients );
-  var trueCoefficients = Vector( allData.trueParams.uParams.coefficients );
-
-  var diff = T.add( mapCoefficients, T.mul(trueCoefficients,-1));
-  var mse = squaredDistance(mapCoefficients, trueCoefficients);
-  pp(' \n\n True vs. map coefficeints MSE: (difference, mse)', diff, mse);
+  viz.scatter(  _.flatten(datumToSamples) );
 };
 
 
 var runModelBatch = function(){
-  var trainingPosterior = Infer({method:'MCMC', samples:5000, verbose:false}, model);
-  displayTrainingResults(trainingPosterior);
-  var datumToPosterior = testModelBatch(trainingPosterior)
-
-  pp('datumToPosterior first and last', 
-     repeat(3, function(){return sample(datumToPosterior[0]);}),
-     repeat(3, function(){return sample(last(datumToPosterior));}));
-                           
+  var trainingPosterior = Infer({method:'MCMC', 
+                                 kernel: {HMC: {steps:10, stepSize:.1}},
+                                 burn:1, 
+                                 samples:1000,
+                                }, 
+                                model);
   
-  var datumToSamples = map( function(posterior){
-    return repeat(30, function(){return sample(posterior)});
-  }, datumToPosterior);
+  displayTrainingResults(trainingPosterior);
 
-  var allSamples = _.flatten(datumToSamples)
-
-  pp('allSamples', allSamples.slice(0,3), allSamples.slice(30,33) );
-  viz.scatter(allSamples);
+  pp('factor b values');
+  displayModelBatch( testModelBatch(trainingPosterior, true) );
+  pp('ignore b values');
+  displayModelBatch( testModelBatch(trainingPosterior, false) );
+                           
 };
 
 runModelBatch();

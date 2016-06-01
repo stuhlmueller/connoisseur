@@ -15,6 +15,26 @@ var getPiecewiseLinear = function(){
   };
 };
 
+var priorU = function(fixParams){
+  var getCoefficient = function(){return sample(Gaussian({mu:0, sigma:2}));}
+  
+  var degree = 4;
+  
+  var params = fixParams ? fixParams : 
+      {coefficients: repeat(degree+1, getCoefficient)};
+  
+  var u = function(x){
+    var value =  sum( map(function(i){
+      return params.coefficients[i] * Math.pow(x,i)
+    }, _.range(degree+1)));
+    return Gaussian({mu:value, sigma:.001});
+  };
+    
+  return {
+    u: u,
+    params:params
+  };
+};
 
 var modelMSE = function(){
   var squaredError = function(x,y){return (x-y)*(x-y);};
