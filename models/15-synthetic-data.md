@@ -340,6 +340,9 @@ var makeDataGenerator = function(options) {
 
 };
 
+wpEditor.put('makeDataGenerator', makeDataGenerator);
+wpEditor.put('printEpisodes', printEpisodes);
+
 
 var sampleEpisodes = makeDataGenerator({
   sampleInitialState: function() {
@@ -370,10 +373,54 @@ var episodes = sampleEpisodes({
 printEpisodes(episodes);
 ~~~~
 
-On future pages:
+In order to learn to predict utility, we need some data to work with. Some of this data will be the (observable) part of the state. In principle, this is all we need, but in practice, it will be useful to distinguish different kinds of information. We'll focus on two particular kinds: first, authorship information (which agent caused a particular action), and second, meta signals (which agent expressed approval or disapproval of some other action).
 
-- Signals (about goodness of actions)
+Let's first add authorship information. This won't require a change to our core data generator:
+
+~~~~
+var makeDataGenerator = wpEditor.get('makeDataGenerator');
+var printEpisodes = wpEditor.get('printEpisodes');
+
+var sampleEpisodes = makeDataGenerator({
+  sampleInitialState: function() {
+    return randomInteger(5);
+  },
+  sampleAction: function(state) {
+    var author = flip(.5) ? 'helper' : 'hinderer';
+    var p_helpful = author === 'helper' ? .8 : .2;
+    var value = flip(p_helpful) ? 'plusone' : 'minusone';
+    return {
+      author: author,
+      value: value
+    };
+  },
+  transition: function(state, action) {
+    var value = action.value;
+    if (value === 'plusone') {
+      return state + 1;
+    } else if (value === 'minusone') {
+      return state - 1;
+    } else {
+      print("error: unknown action");
+    }
+  },
+  utility: function(state) {
+    return state;
+  }
+});
+
+var episodes = sampleEpisodes({
+  numEpisodes: 3,
+  stepsPerEpisode: 4
+});
+
+printEpisodes(episodes);
+~~~~
+
+This is still extremely simplistic, but on future pages, we can make it more interesting by exploring the following directions:
+
+- Sharing global state across episodes
+- Signals about the goodness of actions
 - More complex state
 - Distinguishing observable and unobservable state
-- Sharing global state across episodes
 - Query functions for active learning
