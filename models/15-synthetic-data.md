@@ -248,77 +248,132 @@ var episodes = sampleEpisodes({
 printEpisodes(episodes);
 ~~~~
 
-To add:
+We'd like to learn how good each action is with respect to the utility function of some agent. We'll assume that this utility function applies to the state, and actions are good to the extent that they improve the state's utility. (The real situation is more complicated and we may have to take into account whether the state enables future high-quality actions, but we can assume that this is folded into the agent's utility function for now.)
 
-- metadata (who initiated action)
-- utilities
-- signals
-- global state
-- query functions for active learning
-
-
+Let's extend our example from above:
 
 ~~~~
-var model = function() {
-  var action = uniformDraw(actions);
-  // ...
+///fold:
+var repeatIndexed = function(n, fn) {
+  var helper = function(m, offset) {
+    if (m == 0) {
+      return [];
+    } else if (m == 1) {
+      return [fn(offset)]; // Pass the offset to fn, this is the difference with the built-in repeat
+    } else {
+      var m1 = Math.ceil(m / 2),
+          m2 = m - m1;
+      return helper(m1, offset).concat(helper(m2, offset + m1));
+    }
+  }
+
+  return helper(n, 0);
 };
 
-// - our data will consist of a sequence of actions
-// - we're working the setting of string manipulation for now
-//   (maybe we can be more general)
-// - there is a target string that alice prefers
-// - other users can make edits to the string
-// - users can provide different kinds of signals
-// - we can ask alice different kinds of questions, both global ones
-//   ("how good is this string?") and local ones 
+var last = function(xs) {
+  return xs[xs.length - 1];
+};
+
+var printEpisode = function(episode) {
+  print("Episode " + episode.index + ":");
+  map(function(step){print(step);}, episode.steps);
+  return;
+};
+
+var printEpisodes = function(episodes) {
+  map(printEpisode, episodes);
+  return;
+};
+///
+
+var makeDataGenerator = function(options) {
+
+  var sampleAction = options.sampleAction;
+  var transition = options.transition;
+  var sampleInitialState = options.sampleInitialState;
+  var utility = options.utility;
+  
+  var sampleStep = function(state) {
+    var action = sampleAction(state);
+    var newState = transition(state, action);
+    var step = {
+      action: action,
+      stateAfterAction: newState,
+      actionUtility: utility(newState) - utility(state)
+    };
+    return step;
+  };
+
+  var sampleSteps = function(numSteps, stepsSoFar) {
+    if (numSteps === 0) {
+      return stepsSoFar;
+    } else {
+      var prevState = last(stepsSoFar).stateAfterAction;
+      var step = sampleStep(prevState);
+      var steps = stepsSoFar.concat([step]);
+      return sampleSteps(numSteps - 1, steps);
+    }
+  };
+
+  var sampleEpisode = function(numSteps, episodeIndex) {
+    var initialStep = {
+      action: 'initialize',
+      stateAfterAction: sampleInitialState()    
+    };
+    var steps = sampleSteps(numSteps, [initialStep]);
+    return {
+      steps: steps,
+      index: episodeIndex
+    };
+  };
+
+  var sampleEpisodes = function(options) {
+    var numEpisodes = options.numEpisodes || 1;
+    var stepsPerEpisode = options.stepsPerEpisode || 5;
+    var episodes = repeatIndexed(numEpisodes, function(i){
+      return sampleEpisode(stepsPerEpisode, i);
+    });
+    return episodes;
+  };
+
+  return sampleEpisodes;
+
+};
 
 
-// our data consists of episodes
-// each episode contains a sequence of actions
-// we'll also have metadata associated with actions
-// - who authored it
-// - who liked/disliked it
-//   - as a special case, whether alice likes it
-// we're also able to acquire expensive signals at the end
+var sampleEpisodes = makeDataGenerator({
+  sampleInitialState: function() {
+    return randomInteger(5);
+  },
+  sampleAction: function(state) {
+    return flip(.5) ? 'plusone' : 'minusone';
+  },
+  transition: function(state, action) {
+    if (action === 'plusone') {
+      return state + 1;
+    } else if (action === 'minusone') {
+      return state - 1;
+    } else {
+      print("error: unknown action");
+    }
+  },
+  utility: function(state) {
+    return state;
+  }
+});
 
-// intuitions:
-// - if a contribution is reverted by a highly rated user, it was probably bad
-// - if a deletion is rated highly, the contribution can't have been
-//   good; and vice versa
+var episodes = sampleEpisodes({
+  numEpisodes: 3,
+  stepsPerEpisode: 4
+});
 
-// how will users differ:
-// - some will be more noisy than others
-// - some will only be good at particular kinds of actions
-//   - some will be good at rating, but not at direct contributions,
-//     and vice versa
-//   - some will only be good wrt certain characters
-// - some will be good at rating others' contributions, but won't be
-//   good at rating their own contributions
-// - some will be biased when rating particular kinds of contributions,
-//   or particular kinds of users
-
-// More prerequisites:
-// - signals/judgments of actions
-// - biased/noise actions
-
-// var generateDatum = {
-//   ... 
-// };
-
-var data = [
-  {
-    sequence: [
-      {
-        observableState: "abc",
-        hiddenState: "def",
-        action: "",
-        author: ""
-      },
-      {},
-      {}],    
-  }  
-];
+printEpisodes(episodes);
 ~~~~
 
-This generator will also supply a function that can be queried in an active learning setting.
+On future pages:
+
+- Signals (about goodness of actions)
+- More complex state
+- Distinguishing observable and unobservable state
+- Sharing global state across episodes
+- Query functions for active learning
