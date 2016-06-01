@@ -85,4 +85,25 @@ print(worksAgainDist.support().length);
 
 We might need to run the model for longer to get comparable coverage of the space.
 
-If we have distributions that operate on different orders of magnitude and we want to use HMC, it's probably best to transform the model so that the distributions operate on similar magnitudes.
+If we have distributions that operate on different orders of magnitude and we want to use HMC, it's probably best to transform the model so that the distributions operate on similar magnitudes. In the case of the model above, this would look as follows:
+
+~~~~
+var getModel = function(sigma){
+  return function(){
+    var m = sample(Gaussian({mu: 0, sigma: 1}));
+    var u = sample(Gaussian({mu: 0, sigma: 1})) * sigma + m;
+    return u;
+  };
+};
+
+var smallSigma = getModel(.001);
+
+var dist = Infer({
+  method: 'MCMC', 
+  kernel: {HMC: {steps: 20, stepSize: 0.1}}, 
+  burn: 100,
+  samples: 1000}, smallSigma);
+
+viz.auto(dist);
+print(dist.support().length);
+~~~~
