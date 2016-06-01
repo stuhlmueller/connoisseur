@@ -1,9 +1,11 @@
 // Model 1
 
 var st = JSON.stringify;
-var pp = function(a,b,c){
+var pp = function(a,b,c,d,e,f){
   print( JSON.stringify(a) + ' \n' + JSON.stringify(b) + 
-         ' \n' +  JSON.stringify(c) );
+         ' \n' +  JSON.stringify(c) + 
+         ' \n' +  JSON.stringify(d) + 
+         ' \n' +  JSON.stringify(e) );
 };
 var ash = function(){assert.ok(0,'halt');}
 
@@ -46,6 +48,15 @@ var priorU = function(fixParams){
     params:params
   };
 };
+
+// var sampleU = function(){
+//   //var params = {coefficients: [10,0,0,0,0]}
+//   var uObject = priorU();
+//   var u = uObject.u;
+//   pp( sample(u(0.1)), sample(u(0.5)), sample(u(-0.5)), uObject.params);
+// };
+// repeat(5, sampleU);
+// ash();
 
 
 var priorB = function(fixParams){
@@ -91,7 +102,7 @@ var getAllData = function(numberTrainingData, numberTestData){
   var fixBParams = {biasConstant: 0.5, biasSigma: 1};
   var params = priorParams(fixUParams, fixBParams);
 
-  var testPrior = function(){return sample(Uniform({a:-1, b:3}))};
+  var testPrior = function(){return sample(Uniform({a:-1, b:2}))};
   var trainingData = generateData(numberTrainingData, testPrior, params);  
   var testData = generateData(numberTestData, testPrior, params);
 
@@ -180,23 +191,32 @@ var testModelBatch = function(trainingPosterior){
     
     var datumToPosterior = function(){
 //      var posterior = sample(trainingPosterior);
-      var posterior = priorParams(false,false)
+      var params = priorParams(false,false)
       var u = params.u
       var b = params.b
   
       // var u = priorU(posterior.uParams).u;
       // var b = priorB(posterior.bParams).b;
       var x = datum.x
+
+      
       
       var ux = sample(u(x));
-      factor( b(ux).score( datum.b ) )
+      // if (1<x && x<1.5){
+      //   pp('uParams, x, u(x)', params.uParams, x, ux)
+      // }
+      //factor( b(ux).score( datum.b ) )
 
       return {x:datum.x, ux:ux};
     };
     
-    return Infer({method:'MCMC', lag:100, samples:100, burn:1000, verbose:true}, datumToPosterior);
+//    return Infer({method:'MCMC', kernel:'HMC', burn:100, samples:1000}, datumToPosterior);
+    return Infer({method:'rejection', samples:1000}, datumToPosterior);
   }, allData.testData);
 };
+
+
+
 
 
 var displayTrainingResults = function(erp){
@@ -215,16 +235,17 @@ var runModelBatch = function(){
   displayTrainingResults(trainingPosterior);
   var datumToPosterior = testModelBatch(trainingPosterior)
 
-  var marginal = Enumerate(function(){
-    return sample(datumToPosterior[0]).ux;
-  });
-  viz.auto(marginal);
+  pp('datumToPosterior first and last', 
+     repeat(3, function(){return sample(datumToPosterior[0]);}),
+     repeat(3, function(){return sample(last(datumToPosterior));}));
                            
   
   var datumToSamples = map( function(posterior){
     return repeat(30, function(){return sample(posterior)});
   }, datumToPosterior);
+
   var allSamples = _.flatten(datumToSamples)
+
   pp('allSamples', allSamples.slice(0,3), allSamples.slice(30,33) );
   viz.scatter(allSamples);
 };
