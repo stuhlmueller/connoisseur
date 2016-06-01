@@ -1,9 +1,9 @@
 ---
 layout: model
-title: Hamiltonian Monte Carlo
+title: Basic Hamiltonian Monte Carlo
 ---
 
-Hamiltonian Monte Carlo is a useful method for inference in models that have many continuous random variables. An example:
+Hamiltonian Monte Carlo is a useful method for inference in models that have predominantly continuous random variables. An example:
 
 ~~~~
 var model = function(){
@@ -107,3 +107,5 @@ var dist = Infer({
 viz.auto(dist);
 print(dist.support().length);
 ~~~~
+
+At the moment, Hamiltonian Monte Carlo isn't available for multivariate distributions yet.
