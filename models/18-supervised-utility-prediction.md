@@ -284,3 +284,5 @@ var test = function() {
 
 test();
 ~~~~
+
+This evaluation is very noisy, since we only have five data points to test on (but we could use arbitrarily more test data to improve on this). Due to the use of variational inference, and the selection of a single matrix/function above, we're also not correctly capturing uncertainty in our distribution over functions when we're doing prediction.
