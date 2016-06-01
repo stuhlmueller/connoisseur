@@ -166,3 +166,5 @@ modelDist.support()[0].matrix
 ~~~~
 
 The resulting matrix looks as expected.
+
+Instead of using a factor based on the squared error, we could also factor based on a Gaussian likelihood.
