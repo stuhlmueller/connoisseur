@@ -285,7 +285,13 @@ var test = function() {
 test();
 ~~~~
 
-This evaluation is very noisy, since we only have five data points to test on (but we could use arbitrarily more test data to improve on this). Due to the use of variational inference, and the selection of a single matrix/function above, we're also not correctly capturing uncertainty in our distribution over functions when we're doing prediction. We could address this by (1) computing a distribution on matrices using HMC (with independent random variable for each matrix element) and (2) storing this distribution so that we can use it for prediction.
+Next steps:
+
+1. Make the evaluation less noisy: This evaluation is very noisy, since we only have five data points to test on (but we could use arbitrarily more test data to improve on this).
+
+2. Handle uncertainty correctly: Due to the use of variational inference, and the selection of a single matrix/function above, we're also not correctly capturing uncertainty in our distribution over functions when we're doing prediction. We could address this by (1) computing a distribution on matrices using HMC (with independent random variable for each matrix element) and (2) storing this distribution so that we can use it for prediction.
+
+3. Write a more systematic framework for evaluating utility predictors; refactor what we have so far; define a clean interface so that this framework can be used with and tested on external data in addition to synthesized data.
 
 Other things to explore:
 
