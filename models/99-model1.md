@@ -1,6 +1,6 @@
 ---
 layout: model
-title: Model 1: Utility directly observed, Bias side-info depends on utility
+title: Model 1---Utility directly observed, Bias side-info depends on utility
 author: Owain
 ---
 
