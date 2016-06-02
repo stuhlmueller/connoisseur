@@ -74,5 +74,41 @@ var displayFunctions = function(u,b){
 
 displayFunctions(u,b)
 
+var params = {u:u, b:b}
+
+
+var getData = function(numberTrainingData, numberTestData, params){
+
+    var generateData = function(numberDataPoints, priorX){
+    var xs = repeat(numberDataPoints, priorX);
+    
+    return map(function(x){
+      return getDatumGivenContext(x, params);
+    }, xs); 
+    };
+
+   var trainingPrior = function(){return sample(Uniform({a:-.5, b:.5}));}
+   var trainingData = getData(numberTrainingData, trainingPrior)
+   
+   var testPrior = function(){return sample(Uniform({a:-1.5, b:1.5}));}
+   var testData = getData(numberTestData, testPrior) 
+
+var displayData = function(trainingData, testData){
+    print('Display Training and then Test Data')
+
+    map(function(data){
+      var xs = _.map(data,'x');
+      var bs = _.map(data,'b');
+      viz.scatter(xs,bs)
+    }, [trainingData, testData]);
+  };
+
+    return {params: params,
+      trainingData: trainingData,
+          testData: testData};
+};
+
 
 ~~~~
+
+
