@@ -127,15 +127,17 @@ In some cases this won't be enough. Maybe a side-info variable is directly infor
 
 There is a series of examples where cheap signals are used to predict an expensive, gold-standard signals. In some, the cheap signal may be a function of the gold-standard (with some transformation and noise). In others, it's more natural to think about it as a function of the context (which is similar to the gold-standard function).
 
-1. Facebook.
+1. **Facebook**.
 <br><br>Task: Predict rewardingness U of newsfeed item i for user p. (Measured by paying people to evaluate rewardingness). [This is different from 'predict if a user will click "like" if this item is placed on their newsfeed.]
-<br><br>Cheap signal for U(i,p): i comes from close-friend of p, similar people to p clicked "Like" for i or commented on it. 
+<br><br>Cheap signal for U(i,p): i comes from close-friend of p, similar people to p clicked "Like" for i or commented on it.
+<br><br>
 
-2. Code-review
+2. **Code-review**
 <br><br>Task: Predict quality of code submission i. (Measure by having an experienced expert spend a long time evaluating the code). 
 <br><br>Cheap signal: Ask the submitter to guess how likely their code is to be accepted. Have a less experienced programmer review the code.
+<br><br>
 
-3. Peer-review
+3. **Peer-review**
 <br><br>Task: Predict the citations after 5 or 10 years from a paper i.
 <br>Cheap signal: Ask the authors to guess citations. Use peer review evaluations. Use download-rate on Arxiv. 
 
