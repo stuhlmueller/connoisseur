@@ -74,41 +74,113 @@ var displayFunctions = function(u,b){
 
 displayFunctions(u,b)
 
-var params = {u:u, b:b}
+var trueParams = {u:u, b:b};
+wpEditor.put('trueParams', trueParams);
+~~~~
+
+We generate some data. The training and test data have different distributions. This means that `u` is not learnable from the training data but it's values can be inferred fairly accurately given that `b` is informative about `u`.
 
 
-var getData = function(numberTrainingData, numberTestData, params){
+~~~~
 
-    var generateData = function(numberDataPoints, priorX){
+///fold:
+var getDatumGivenContext = function(x, params){
+  var u = params.u;
+  var b = params.b;
+  var ux = sample(u(x));
+  var bx = sample(b(ux));
+  return {x:x, u:ux, b: bx};
+  };
+///
+
+
+var getAllData = function(numberTrainingData, numberTestData, params){
+
+  var generateData = function(numberDataPoints, priorX){
     var xs = repeat(numberDataPoints, priorX);
     
     return map(function(x){
       return getDatumGivenContext(x, params);
     }, xs); 
-    };
-
-   var trainingPrior = function(){return sample(Uniform({a:-.5, b:.5}));}
-   var trainingData = getData(numberTrainingData, trainingPrior)
-   
-   var testPrior = function(){return sample(Uniform({a:-1.5, b:1.5}));}
-   var testData = getData(numberTestData, testPrior) 
-
-var displayData = function(trainingData, testData){
+  };
+  
+  var trainingPrior = function(){return sample(Uniform({a:-.5, b:.5}));}
+  var trainingData = generateData(numberTrainingData, trainingPrior)
+  
+  var testPrior = function(){return sample(Uniform({a:-1.5, b:1.5}));}
+  var testData = generateData(numberTestData, testPrior) 
+  
+  var displayData = function(trainingData, testData){
     print('Display Training and then Test Data')
-
+     
     map(function(data){
       var xs = _.map(data,'x');
       var bs = _.map(data,'b');
       viz.scatter(xs,bs)
     }, [trainingData, testData]);
   };
-
-    return {params: params,
-      trainingData: trainingData,
+  
+  displayData(trainingData, testData)
+  
+  return {params: params,
+          trainingData: trainingData,
           testData: testData};
 };
 
-
+var trueParams = wpEditor.get('trueParams');
+var allData = getAllData(10, 20, trueParams);
+wpEditor.put('allData', allData);
 ~~~~
 
+To perform inference, we need a prior on the functions `u` and `b`. We simply abstract out the parameters that we used to define the functions `u` and `b` above:
 
+~~~~
+var getU = function(uParams){
+  return function(x){
+  
+  var getCoefficient = function(x){
+    if (x<-1){return uParams.lessMinus1}
+    if (x<1){return uParams.less1}
+    if (x>=1){return uParams.greater1}
+  }
+    
+  return Gaussian({mu:getCoefficient(x)*x, sigma:.1})
+  }
+}
+
+var getB = function(bParams){
+    return function(ux){
+        return Gaussian({mu:ux + bParams.constant, sigma:bParams.sigma});
+}
+};
+
+var priorParams = function(){
+  var sampleG = function(){return sample(Gaussian({mu:0, sigma:2}));}
+  var uParams = {lessMinus1: sampleG(),
+  less1: sampleG(),
+  greater1: sampleG()}
+
+  var bParams = {constant: sampleG(), sigma: Math.abs(sampleG())}
+
+  return {
+    u: getU(uParams),
+    uParams: uParams,
+    b: getB(bParams),
+    bParams: bParams
+    }
+}
+
+
+var displayFunctions = function(u,b){
+    print('Display functions u and b on range [-3,3]');
+
+    var xs = repeat(100,function(){return sample(Uniform({a:-3,b:3}))});
+    var uValues =  map(function(x){return sample(u(x))}, xs);
+    viz.scatter(xs, uValues);
+    var bValues =  map(function(ux){return sample(b(ux))}, uValues);
+    viz.scatter(xs, bValues);
+};
+    
+var paramsExample = priorParams()
+displayFunctions(paramsExample.u, paramsExample,b)
+~~~~

@@ -1,0 +1,80 @@
+var getDatumGivenContext = function(x, params){
+  var u = params.u;
+  var b = params.b;
+  var ux = sample(u(x));
+  var bx = sample(b(ux));
+  return {x:x, u:ux, b: bx};
+};
+
+
+var u = function(x){
+  
+  var getCoefficient = function(x){
+    if (x<-1){return -1.5}
+    if (x<1){return 3}
+    if (x>=1){return -.3}
+  }
+    
+  return Gaussian({mu:getCoefficient(x)*x, sigma:.1})
+}
+
+var b = function(ux){
+    var constant = .5
+    var sigma = .1
+    return Gaussian({mu:ux + constant, sigma:sigma});
+}
+
+
+var displayFunctions = function(u,b){
+    print('Display true functions u and b on range [-3,3]');
+
+    var xs = repeat(100,function(){return sample(Uniform({a:-3,b:3}))});
+    var uValues =  map(function(x){return sample(u(x))}, xs);
+    viz.scatter(xs, uValues);
+    var bValues =  map(function(ux){return sample(b(ux))}, uValues);
+    viz.scatter(xs, bValues);
+};
+
+//displayFunctions(u,b)
+
+var trueParams = {u:u, b:b};
+
+
+
+var getAllData = function(numberTrainingData, numberTestData, params){
+
+  var generateData = function(numberDataPoints, priorX){
+    var xs = repeat(numberDataPoints, priorX);
+    
+    return map(function(x){
+      return getDatumGivenContext(x, params);
+    }, xs); 
+  };
+  
+  var trainingPrior = function(){return sample(Uniform({a:-.5, b:.5}));}
+  
+  var trainingData = generateData(numberTrainingData, trainingPrior)
+  
+  var testPrior = function(){return sample(Uniform({a:-1.5, b:1.5}));}
+  var testData = generateData(numberTestData, testPrior) 
+
+  var displayData = function(trainingData, testData){
+    print('Display Training and then Test Data')
+    
+    map(function(data){
+      var xs = _.map(data,'x');
+      var bs = _.map(data,'b');
+      viz.scatter(xs,bs)
+    }, [trainingData, testData]);
+  };
+  
+  return {params: params,
+          trainingData: trainingData,
+          testData: testData};
+};
+
+//var trueParams = wpEditor.get('trueParams');
+var allData = getAllData(10, 20, trueParams);
+
+console.log('training, test', allData.trainingData, allData.testData);
+
