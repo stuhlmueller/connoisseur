@@ -78,7 +78,7 @@ var trueParams = {u:u, b:b};
 wpEditor.put('trueParams', trueParams);
 ~~~~
 
-We generate some data. The training and test data have different distributions. This means that `u` is not learnable from the training data but it's values can be inferred fairly accurately given that `b` is informative about `u`.
+We generate some data. The training and test data have different distributions. This means that `u` is not learnable from the training data but its values can be inferred fairly accurately given that `b` is informative about `u`.
 
 
 ~~~~
@@ -184,7 +184,7 @@ var paramsExample = priorParams()
 displayFunctions(paramsExample.u, paramsExample.b)
 ~~~~
 
-Putting everything together, we do inference on the training set:
+Putting everything together, we do inference on the training set to learn the parameters of u and b. We first do this using likelihoods (via `score`) and then we do this using an error function. 
 
 ~~~~
 ///fold:
@@ -304,7 +304,7 @@ var priorParams = function(){
 ///
 
 
-var trainModel = function(){
+var trainingModel = function(){
   var params = priorParams();
   var u = params.u
   var b = params.b
@@ -318,42 +318,102 @@ var trainModel = function(){
     uParams: params.uParams,
     bParams: params.bParams,
   };
-
 };
 
 
 var distance = function(x,y){return Math.abs(x-y)};
 
-var trainModelError = function(){
+var trainingModelError = function(){
   var params = priorParams();
     
   map( function(datum){
     var prDatum = getDatumGivenContext(datum.x,params)
     var error = distance(prDatum.u, datum.u) + distance(prDatum.b, datum.b)
-    factor( -error)
+    factor(-error)
   }, allData.trainingData);
   
   return {
     uParams: params.uParams,
     bParams: params.bParams,
   };
-
 };
 
+var getPosterior = function(model){
 
-var trainingPosterior = Infer(
-  {method:'MCMC', 
+    var posterior = Infer(
+        {method:'MCMC', 
    kernel:{HMC: {steps:10, stepSize:.1}},
    burn:1, 
    samples:1000,
   }, 
-  trainModel);
+  model);
 
-var MAP = trainingPosterior.MAP().val
+var MAP = posterior.MAP().val
 print( '\nTrue vs. MAP uParams:' +
 JSON.stringify({lessMinus1: -1.5, less1:3, greater1:-.3}) +
 JSON.stringify(MAP.uParams) +
 '\n\nTrue vs. MAP bParams:' +
 JSON.stringify({constant: .5, sigma:.1}) +
 JSON.stringify(MAP.bParams));
+
+return posterior;
+}
+
+print('Model with likelihoods')
+getPosterior(trainingModel)
+
+print('Model with absolute error')
+var posteriorTraining = getPosterior(trainingModelError)
+
+
+var predictModelError = function(posteriorTraining){
+  return function(){
+    var trainingParams = sample(posteriorTraining)
+    var u = getU(trainingParams.uParams)
+    var b = getB(trainingParams.bParams)
+    var params = {u:u, b:b}
+    
+    var datumToError = map( function(datum){
+      var prDatum = getDatumGivenContext(datum.x,params)
+      factor(-distance(prDatum.b, datum.b))
+    
+    var error = distance(prDatum.u, datum.u)
+    return error;
+      
+    }, allData.testData);
+    
+    var totalError = sum( datumToError)
+  
+    return {
+      uParams: trainingParams.uParams,
+      bParams: trainingParams.bParams,
+      totalError: totalError
+    };
+  };
+}
+
+var predictModel = predictModelError(posteriorTraining);
+
+var posteriorPredict = Infer(
+  {method:'MCMC', 
+   //kernel:{HMC: {steps:10, stepSize:.1}},
+   burn:10, 
+   samples:1000,
+  }, 
+  predictModel);
+
+print( JSON.stringify(posteriorPredict.MAP().val ))
+var marg = Infer({method:'rejection',
+    samples:200}, function(){
+  return sample(posteriorPredict).totalError
+}) 
+viz.auto(marg)
+
 ~~~~
+
+
+The results show that the model does not infer the correct parameters for x<-1 and x>1. There's no way it could: the training data doesn't cover these regions.
+
+~~~~
+
+
