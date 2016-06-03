@@ -3,7 +3,7 @@ layout: model
 title: Evaluating Algorithms that Learn to Infer Utility
 ---
 
-We're now going to write a more structured framework for evaluating different utility learners on different problems.
+We're now going to write a more structured framework for evaluating utility learners on different problems.
 
 Our data generating process is going to be the same as previously (generating multiple episodes, each with multiple steps, with fixed by unknown global state and mutable per-episode state). A trivial example:
 
@@ -128,7 +128,7 @@ wpEditor.put('data', data);
 printEpisodes(data);
 ~~~~
 
-We'll also be dealing with predictors. A predictor is trained on episodes (such as the ones above) and learns to predict utility for new episodes. It jointly makes a prediction for all steps in all episodes it is tested on.
+A predictor is trained on episodes (such as the ones above) and learns to predict utility for new episodes. It may or may not be given explicit utilities for the training episodes. It jointly makes a prediction for all steps in all test episodes.
 
 ~~~~
 var data = wpEditor.get('data');
@@ -164,7 +164,7 @@ var predict = trivialPredictor.predict;
 predict(null, data.episodes);
 ~~~~
 
-However, our predictors won't directly observe the data in such episodes---they will (in general) only observe a subset of the data. We also need to split the data into training and test data. We do both of these tasks using a data preparer:
+Our predictors won't directly observe all of the data---they will in general only observe a subset of the data (e.g. not including true utilities, only various correlated signals). We also need to split the data into training and test data. We do both of these tasks using a data preparer:
 
 ~~~~
 var makeDataPreparer = function(options) {
