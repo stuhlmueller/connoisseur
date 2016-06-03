@@ -186,15 +186,17 @@ displayFunctions(paramsExample.u, paramsExample.b)
 
 Putting everything together, we do inference on the training set to learn the parameters of u and b. We first do this using likelihoods (via `score`) and then we do this using an error function. 
 
+
+
 ~~~~
 ///fold:
 
 var u = function(x){
   
   var getCoefficient = function(x){
-    if (x<-1){return -1.5}
+    if (x<-1){return -3}
     if (x<1){return 3}
-    if (x>=1){return -.3}
+    if (x>=1){return -4}
   }
     
   return Gaussian({mu:getCoefficient(x)*x, sigma:.1})
@@ -243,7 +245,7 @@ var getAllData = function(numberTrainingData, numberTestData, params){
   var trainingPrior = function(){return sample(Uniform({a:-.5, b:.5}));}
   var trainingData = generateData(numberTrainingData, trainingPrior)
   
-  var testPrior = function(){return sample(Uniform({a:-1.5, b:1.5}));}
+  var testPrior = function(){return sample(Uniform({a:-2, b:2}));}
   var testData = generateData(numberTestData, testPrior) 
   
   var displayData = function(trainingData, testData){
@@ -263,7 +265,7 @@ var getAllData = function(numberTrainingData, numberTestData, params){
           testData: testData};
 };
 
-var allData = getAllData(10, 20, trueParams);
+var allData = getAllData(15, 20, trueParams);
 
 
 
@@ -322,51 +324,107 @@ var trainingModel = function(){
 
 
 var distance = function(x,y){return Math.abs(x-y)};
+var factorBValues = false;
+
+
+// Currently this is not working. Double check
+// that MAP estimate of parameters is working
+// properly as a performance measure. Think more
+// about what might be going wrong. (Can reduce
+// number of data points, try SMC or variational). 
 
 var trainingModelError = function(){
   var params = priorParams();
-    
+
   map( function(datum){
     var prDatum = getDatumGivenContext(datum.x,params)
     var error = distance(prDatum.u, datum.u) + distance(prDatum.b, datum.b)
     factor(-error)
   }, allData.trainingData);
-  
+
+
+  var datumToError = map( function(datum){
+      var predictDatum = getDatumGivenContext(datum.x, params)
+      
+      if (factorBValues){factor(-distance(predictDatum.b, datum.b))}
+      
+      //var error = distance(predictDatum.u, datum.u)
+      //return {x:datum.x, guessU: predictDatum.u, u: datum.u, error:error};
+    }, allData.testData);
+    
   return {
     uParams: params.uParams,
     bParams: params.bParams,
+    //datumToError: datumToError,
+    //totalError: sum( _.map(datumToError, 'error'))
   };
 };
 
 var getPosterior = function(model){
-
-    var posterior = Infer(
-        {method:'MCMC', 
-   kernel:{HMC: {steps:10, stepSize:.1}},
-   burn:1, 
-   samples:1000,
-  }, 
-  model);
-
-var MAP = posterior.MAP().val
-print( '\nTrue vs. MAP uParams:' +
-JSON.stringify({lessMinus1: -1.5, less1:3, greater1:-.3}) +
-JSON.stringify(MAP.uParams) +
-'\n\nTrue vs. MAP bParams:' +
-JSON.stringify({constant: .5, sigma:.1}) +
-JSON.stringify(MAP.bParams));
-
-return posterior;
+  var posterior = Infer(
+    {method:'MCMC', 
+     kernel:{HMC: {steps:10, stepSize:.1}},
+     burn:1, 
+     samples:1000,
+    }, 
+    model);
+  
+  var MAP = posterior.MAP().val
+  print( '\nTrue vs. MAP uParams:' +
+        JSON.stringify({lessMinus1: -3, less1:3, greater1:-4}) +
+        JSON.stringify(MAP.uParams) +
+        '\n\nTrue vs. MAP bParams:' +
+        JSON.stringify({constant: .5, sigma:.1}) +
+        JSON.stringify(MAP.bParams));
+  
+  return posterior;
 }
 
 print('Model with likelihoods')
-getPosterior(trainingModel)
+//getPosterior(trainingModel)
 
 print('Model with absolute error')
-var posteriorTraining = getPosterior(trainingModelError)
+var posterior = getPosterior(trainingModelError)
+
+var getMarginal = function(erp, index){
+  return Infer({method:'rejection',samples: 200}, 
+               function(){return sample(erp).datumToError[index].guessU})
+}
+  
+var MAP = posterior.MAP().val;
+
+print( 'datumToError: ');
+map( function(datum){
+  print(datum);
+}, MAP.datumToError)
 
 
-var predictModelError = function(posteriorTraining){
+var allPoints = map(function(i){
+  var marginal = getMarginal(posterior, i);
+  //viz.auto(marginal)
+  
+  var x = allData.testData[i].x
+  var samples = repeat(60, function(){
+    return {x:x, u:sample(marginal)}})
+  return samples
+}, _.range(allData.testData.length))
+
+
+var trueValues = map(
+  function(datum){return {x:datum.x, u:datum.u}}, 
+  allData.testData);
+
+viz.scatter(_.flatten(allPoints))
+print('true values')
+viz.scatter(trueValues)
+
+~~~~
+
+The next codebox computes a posterior on u values given the corresponding b values. (This doesn't work well because we don't have a fine-grained enough representation of the distribution on functions u and b from running MCMC on the prior).
+
+~~~~
+///fold:
+var predictModelError = function(posteriorTraining, factorBValues){
   return function(){
     var trainingParams = sample(posteriorTraining)
     var u = getU(trainingParams.uParams)
@@ -374,42 +432,90 @@ var predictModelError = function(posteriorTraining){
     var params = {u:u, b:b}
     
     var datumToError = map( function(datum){
-      var prDatum = getDatumGivenContext(datum.x,params)
-      factor(-distance(prDatum.b, datum.b))
-    
-    var error = distance(prDatum.u, datum.u)
-    return error;
+      var predictDatum = getDatumGivenContext(datum.x, params)
       
+      if (factorBValues){
+        factor(-distance(predictDatum.b, datum.b))
+      }
+      
+      var error = distance(predictDatum.u, datum.u)
+      return {x:datum.x, guessU: predictDatum.u, u: datum.u, error:error};
     }, allData.testData);
     
-    var totalError = sum( datumToError)
-  
+    var totalError = sum( _.map(datumToError, 'error'));
+    
     return {
       uParams: trainingParams.uParams,
       bParams: trainingParams.bParams,
+      datumToError: datumToError,
       totalError: totalError
     };
   };
 }
 
-var predictModel = predictModelError(posteriorTraining);
+var runPosteriorPrediction = function(model){
 
-var posteriorPredict = Infer(
-  {method:'MCMC', 
-   //kernel:{HMC: {steps:10, stepSize:.1}},
-   burn:10, 
-   samples:1000,
-  }, 
-  predictModel);
+  var posteriorPredict = Infer(
+    {method:'MCMC', 
+     kernel:{HMC: {steps:10, stepSize:.1}},
+     burn:20, 
+     samples:2000,
+    }, 
+    model);
+  
+  
+  print( 'MAP totalError: ' + 
+        JSON.stringify(posteriorPredict.MAP().val.totalError ))
 
-print( JSON.stringify(posteriorPredict.MAP().val ))
-var marg = Infer({method:'rejection',
-    samples:200}, function(){
-  return sample(posteriorPredict).totalError
-}) 
-viz.auto(marg)
+
+  var getMarginal = function(erp, index){
+  return Infer({
+    method:'rejection',
+    samples: 200}, 
+               function(){
+    return sample(erp).datumToError[index].guessU
+  })
+  }
+  
+  var MAP = posteriorPredict.MAP().val;
+  
+  print( 'datumToError: ');
+  map( function(datum){
+    print(datum);
+  }, MAP.datumToError)
+  
+  
+  var allPoints = map(function(i){
+    var marginal = getMarginal(posteriorPredict, i);
+  //viz.auto(marginal)
+  
+    var x = allData.testData[i].x
+    var samples = repeat(60, function(){
+      return {x:x, u:sample(marginal)}})
+    return samples
+  }, _.range(allData.testData.length))
+                     
+
+  var trueValues = map(
+    function(datum){
+      return {x:datum.x, u:datum.u}}, 
+    allData.testData);
+  
+  viz.scatter(_.flatten(allPoints))
+  print('true values')
+  viz.scatter(trueValues)
+}
+
+var predictModelFactorBValues = predictModelError(posteriorTraining,true);
+runPosteriorPrediction(predictModelFactorBValues)
+
+var predictModelNoBValues = predictModelError(posteriorTraining,false);
+runPosteriorPrediction(predictModelNoBValues)
+///
 
 ~~~~
+
+
 
 
 The results show that the model does not infer the correct parameters for x<-1 and x>1. There's no way it could: the training data doesn't cover these regions.
