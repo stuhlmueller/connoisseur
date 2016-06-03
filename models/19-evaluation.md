@@ -1,6 +1,6 @@
 ---
 layout: model
-title: Evaluating Algorithms that Learn to Infer Utility
+title: A Framework for Evaluating Algorithms that Learn to Infer Utility
 ---
 
 We're now going to write a more structured framework for evaluating utility learners on different problems.
@@ -294,10 +294,3 @@ trivialEvaluator({
   numRepeats: 3
 });
 ~~~~
-
-Next steps:
-
-- Apply this to my regression example
-  - This requires a change to the scoring procedure
-  - The predictor needs to include the data embedding procedure
-- Apply this to Owain's example(s)
