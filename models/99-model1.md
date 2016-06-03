@@ -310,11 +310,18 @@ var trainingModel = function(){
   var params = priorParams();
   var u = params.u
   var b = params.b
-  
+
+// factor on training set
   map( function(datum){
     factor( u(datum.x).score(datum.u) );
     factor( b(datum.u).score(datum.b) );
-  }, allData.trainingData);
+    }, allData.trainingData);
+
+// factor on test set (b values only)
+map( function(datum){
+    var predictU = sample(u(datum.x))
+    factor( b(predictU).score(datum.b) );
+  }, allData.testData); 
   
   return {
     uParams: params.uParams,
@@ -323,15 +330,11 @@ var trainingModel = function(){
 };
 
 
+// Inference using absolute distance between predicted and observed points
+
 var distance = function(x,y){return Math.abs(x-y)};
 var factorBValues = false;
 
-
-// Currently this is not working. Double check
-// that MAP estimate of parameters is working
-// properly as a performance measure. Think more
-// about what might be going wrong. (Can reduce
-// number of data points, try SMC or variational). 
 
 var trainingModelError = function(){
   var params = priorParams();
@@ -368,7 +371,8 @@ var getPosterior = function(model){
      samples:1000,
     }, 
     model);
-  
+
+  // print MAP value for params vs true params
   var MAP = posterior.MAP().val
   print( '\nTrue vs. MAP uParams:' +
         JSON.stringify({lessMinus1: -3, less1:3, greater1:-4}) +
@@ -381,10 +385,13 @@ var getPosterior = function(model){
 }
 
 print('Model with likelihoods')
-//getPosterior(trainingModel)
+var posterior = getPosterior(trainingModel)
 
-print('Model with absolute error')
-var posterior = getPosterior(trainingModelError)
+
+
+
+// These functions assume that inference returns "datumToError"
+// which provides a distribution over the u(x) value for each test point x
 
 var getMarginal = function(erp, index){
   return Infer({method:'rejection',samples: 200}, 
