@@ -414,6 +414,185 @@ viz.auto(marg)
 
 The results show that the model does not infer the correct parameters for x<-1 and x>1. There's no way it could: the training data doesn't cover these regions.
 
+Another way of looking at this:
+
 ~~~~
+///fold:
+var utility = function(x) {
+  var getCoefficient = function(x){
+    if (x<-1){
+      return -3;
+    } else if (x<1){
+      return 3;
+    } else {
+      return -4;
+    }
+  };
+  return Gaussian({ 
+    mu: getCoefficient(x)*x, 
+    sigma: .1
+  });
+};
+
+var biasedSignal = function(u) {
+  var constant = .5;
+  var sigma = .1;
+  return Gaussian({
+    mu: u + constant, 
+    sigma: sigma
+  });
+};
+
+var displayFunctions = function() {
+  var xs = repeat(100, function(){return sample(Uniform({a:-3,b:3}))});
+  var uValues =  map(function(x){return sample(utility(x))}, xs);
+  viz.scatter(xs, uValues);
+  var bValues =  map(function(ux){return sample(biasedSignal(ux))}, uValues);
+  viz.scatter(xs, bValues);
+};
+
+var trueParams = {
+  utility: utility,
+  biasedSignal: biasedSignal
+};
+
+var getDatumGivenContext = function(x, params) {
+  var utility = params.utility;
+  var biasedSignal = params.biasedSignal;
+  var u = sample(utility(x));
+  var b = sample(biasedSignal(u));
+  return {
+    x: x,
+    u: u, 
+    b: b
+  };
+};
+
+var getAllData = function(numberTrainingData, numberTestData, params){
+
+  var generateData = function(numberDataPoints, priorX){
+    var xs = repeat(numberDataPoints, priorX);
+
+    return map(function(x){
+      return getDatumGivenContext(x, params);
+    }, xs); 
+  };
+
+  var trainingPrior = function(){return sample(Uniform({a:-.5, b:.5}));}
+  var trainingData = generateData(numberTrainingData, trainingPrior)
+
+  var testPrior = function(){return sample(Uniform({a:-2, b:2}));}
+  var testData = generateData(numberTestData, testPrior) 
+
+  var displayData = function(trainingData, testData){
+    print('Display Training and then Test Data')
+
+    map(function(data){
+      var xs = _.map(data,'x');
+      var bs = _.map(data,'b');
+      viz.scatter(xs,bs)
+    }, [trainingData, testData]);
+  };
+
+  return {
+    params: params,
+    trainingData: trainingData,
+    testData: testData
+  };
+};
+
+var allData = getAllData(15, 20, trueParams);
 
 
+var utilityFromParams = function(uParams){
+  return function(x){
+
+    var getCoefficient = function(x){
+      if (x<-1){
+        return uParams.lessMinus1;
+      } else if (x<1){
+        return uParams.less1;
+      } else {
+        return uParams.greater1;
+      }
+    }
+
+    return Gaussian({
+      mu: getCoefficient(x)*x, 
+      sigma: .1
+    });
+  }
+}
+
+var biasedSignalFromParams = function(bParams){
+  return function(u){
+    return Gaussian({
+      mu: u + bParams.constant, 
+      sigma: bParams.sigma
+    });
+  }
+};
+
+
+var paramPrior = function(){
+  var sampleG = function(){
+    return sample(Gaussian({mu: 0, sigma: 2}));
+  };
+  var uParams = {
+    lessMinus1: sampleG(),
+    less1: sampleG(),
+    greater1: sampleG()
+  };
+  var bParams = {
+    constant: sampleG(), 
+    sigma: Math.abs(sampleG())
+  };
+
+  return {
+    uParams: uParams,
+    bParams: bParams
+  };
+};
+///
+
+var model = function(){
+  var params = paramPrior();
+  var utility = utilityFromParams(params.uParams);
+  var biasedSignal = biasedSignalFromParams(params.bParams);
+
+  map( 
+    function(datum){
+      factor(utility(datum.x).score(datum.u));
+      factor(biasedSignal(datum.u).score(datum.b));
+    }, 
+    allData.trainingData);
+
+  return _.extend({}, params.uParams, params.bParams);
+};
+
+var posterior = Infer(
+  {
+    method: 'MCMC', 
+    kernel: {HMC: {steps:5, stepSize:.01}},
+    burn: 500, 
+    samples: 50000  // <- takes a while time to run!
+  }, 
+  model);
+
+var getMarginals = function(dist, keys){
+  return Infer(
+    {
+      method: 'enumerate'
+    }, 
+    function(){
+      return _.pick(sample(dist), keys);
+    });
+};
+
+viz.auto(getMarginals(posterior, ['lessMinus1'])); // -3
+viz.auto(getMarginals(posterior, ['less1']));  // 3
+viz.auto(getMarginals(posterior, ['greater1'])); // -4
+
+viz.auto(getMarginals(posterior, ['constant'])); // .5
+viz.auto(getMarginals(posterior, ['sigma'])); // .1
+~~~~
